@@ -1,30 +1,27 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { userEvent } from '@testing-library/user-event';
+import React from 'react';
+import { describe, it, expect, vi } from 'vitest';
+
 import {
   PromptInput,
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputSubmit,
 } from './PromptInput';
-import React from 'react';
 
 describe('PromptInput components', () => {
   it('calls onSubmit when form is submitted with valid input', async () => {
     const onSubmit = vi.fn();
     const onChange = vi.fn();
-    
+
     render(
       <PromptInput onSubmit={onSubmit}>
-        <PromptInputTextarea
-          value="Test message"
-          onChange={onChange}
-          placeholder="Type here..."
-        />
+        <PromptInputTextarea value="Test message" onChange={onChange} placeholder="Type here..." />
         <PromptInputToolbar>
           <PromptInputSubmit />
         </PromptInputToolbar>
-      </PromptInput>
+      </PromptInput>,
     );
 
     const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -36,17 +33,14 @@ describe('PromptInput components', () => {
   it('does not call onSubmit when input is empty or whitespace only', async () => {
     const onSubmit = vi.fn();
     const onChange = vi.fn();
-    
+
     render(
       <PromptInput onSubmit={onSubmit}>
-        <PromptInputTextarea
-          value="   "
-          onChange={onChange}
-        />
+        <PromptInputTextarea value="   " onChange={onChange} />
         <PromptInputToolbar>
           <PromptInputSubmit />
         </PromptInputToolbar>
-      </PromptInput>
+      </PromptInput>,
     );
 
     const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -64,18 +58,14 @@ describe('PromptInput components', () => {
         onSubmit('Test');
       }
     });
-    
+
     render(
       <PromptInput onSubmit={onSubmit}>
-        <PromptInputTextarea
-          value="Test"
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-        />
+        <PromptInputTextarea value="Test" onChange={onChange} onKeyDown={onKeyDown} />
         <PromptInputToolbar>
           <PromptInputSubmit />
         </PromptInputToolbar>
-      </PromptInput>
+      </PromptInput>,
     );
 
     const textarea = screen.getByRole('textbox');
@@ -88,18 +78,14 @@ describe('PromptInput components', () => {
     const onSubmit = vi.fn();
     const onChange = vi.fn();
     const onKeyDown = vi.fn();
-    
+
     render(
       <PromptInput onSubmit={onSubmit}>
-        <PromptInputTextarea
-          value="Test"
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-        />
+        <PromptInputTextarea value="Test" onChange={onChange} onKeyDown={onKeyDown} />
         <PromptInputToolbar>
           <PromptInputSubmit />
         </PromptInputToolbar>
-      </PromptInput>
+      </PromptInput>,
     );
 
     const textarea = screen.getByRole('textbox');
@@ -112,26 +98,20 @@ describe('PromptInput components', () => {
   it('disables submit button when disabled prop is true', () => {
     const onSubmit = vi.fn();
     const onChange = vi.fn();
-    
+
     render(
       <PromptInput onSubmit={onSubmit}>
-        <PromptInputTextarea
-          value="Test"
-          onChange={onChange}
-          disabled={true}
-        />
+        <PromptInputTextarea value="Test" onChange={onChange} disabled={true} />
         <PromptInputToolbar>
           <PromptInputSubmit disabled={true} />
         </PromptInputToolbar>
-      </PromptInput>
+      </PromptInput>,
     );
 
-    const textarea = screen.getByRole('textbox');
-    const submitButton = screen.getByRole('button', { name: /submit/i });
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    const submitButton = screen.getByRole('button', { name: /submit/i }) as HTMLButtonElement;
 
-    expect(textarea).toBeDisabled();
-    expect(submitButton).toBeDisabled();
+    expect(textarea.disabled).toBe(true);
+    expect(submitButton.disabled).toBe(true);
   });
 });
-
-

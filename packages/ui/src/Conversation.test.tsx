@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Conversation, ConversationContent } from './Conversation';
 import React from 'react';
+import { describe, it, expect } from 'vitest';
+
+import { Conversation, ConversationContent } from './Conversation';
+
 
 describe('Conversation components', () => {
   it('renders conversation container', () => {
@@ -11,9 +13,9 @@ describe('Conversation components', () => {
           <div>Message 1</div>
           <div>Message 2</div>
         </ConversationContent>
-      </Conversation>
+      </Conversation>,
     );
-    
+
     expect(container.querySelector('.flex')).toBeTruthy();
     expect(screen.getByText('Message 1')).toBeTruthy();
     expect(screen.getByText('Message 2')).toBeTruthy();
@@ -27,25 +29,23 @@ describe('Conversation components', () => {
           <div data-testid="msg-2">Second message</div>
           <div data-testid="msg-3">Third message</div>
         </ConversationContent>
-      </Conversation>
+      </Conversation>,
     );
-    
+
     const messages = screen.getAllByTestId(/msg-/);
     expect(messages).toHaveLength(3);
-    expect(messages[0]).toHaveTextContent('First message');
-    expect(messages[1]).toHaveTextContent('Second message');
-    expect(messages[2]).toHaveTextContent('Third message');
+    expect(messages[0]?.textContent ?? '').toContain('First message');
+    expect(messages[1]?.textContent ?? '').toContain('Second message');
+    expect(messages[2]?.textContent ?? '').toContain('Third message');
   });
 
   it('applies custom className', () => {
     const { container } = render(
       <Conversation className="custom-class">
         <ConversationContent>Test</ConversationContent>
-      </Conversation>
+      </Conversation>,
     );
-    
+
     expect(container.querySelector('.custom-class')).toBeTruthy();
   });
 });
-
-

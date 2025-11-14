@@ -19,8 +19,9 @@ export function computeIntegrityRisk(events: IntegrityEvent[]): IntegrityRisk {
   const byItem: Record<string, IntegrityEvent[]> = {};
   for (const e of events) {
     const key = e.itemId ?? 'unknown';
-    byItem[key] = byItem[key] ?? [];
-    byItem[key].push(e);
+    const bucket = byItem[key] ?? [];
+    bucket.push(e);
+    byItem[key] = bucket;
   }
 
   for (const [itemId, evts] of Object.entries(byItem)) {
@@ -52,5 +53,3 @@ export function computeIntegrityRisk(events: IntegrityEvent[]): IntegrityRisk {
   const concise = reasons.slice(0, 5);
   return { risk, band, reasons: concise };
 }
-
-

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 module.exports = {
   root: true,
-  extends: ['@config/root/eslint/base'],
+  extends: ['./packages/config/eslint/base.cjs'],
   ignorePatterns: [
     '**/node_modules/**',
     '**/dist/**',

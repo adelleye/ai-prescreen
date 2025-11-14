@@ -27,7 +27,9 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-restricted-imports': [
       'error',
-      { patterns: ['default-export', { group: ['**/dist/**'], message: 'Import sources' }] },
+      {
+        patterns: ['**/dist/**'],
+      },
     ],
   },
   overrides: [

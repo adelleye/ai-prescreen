@@ -19,10 +19,7 @@ export function PromptInput({ onSubmit, children, className = '' }: PromptInputP
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`border-t border-gray-200 bg-white ${className}`}
-    >
+    <form onSubmit={handleSubmit} className={`border-t border-gray-200 bg-white ${className}`}>
       {children}
     </form>
   );
@@ -95,11 +92,16 @@ type PromptInputSubmitProps = {
   className?: string;
 };
 
-export function PromptInputSubmit({ disabled = false, children, className = '' }: PromptInputSubmitProps) {
+export function PromptInputSubmit({
+  disabled = false,
+  children,
+  className = '',
+}: PromptInputSubmitProps) {
   return (
     <button
       type="submit"
       disabled={disabled}
+      aria-label="Submit"
       className={`inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children || (
@@ -128,11 +130,5 @@ type PromptInputHintProps = {
 };
 
 export function PromptInputHint({ children, className = '' }: PromptInputHintProps) {
-  return (
-    <span className={`text-xs text-gray-400 ${className}`}>
-      {children}
-    </span>
-  );
+  return <span className={`text-xs text-gray-400 ${className}`}>{children}</span>;
 }
-
-

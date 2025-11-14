@@ -1,14 +1,23 @@
+import type { FastifyReply } from 'fastify';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FastifyReply } from 'fastify';
-import { registerAssessments } from './assessments';
+
+
 import type { LlmAdapter } from '../llm/adapter';
-import type { ScoringService } from '../services/scoring';
 import { LLMConfigurationError } from '../llm/errors';
+import type { GradeOutcome } from '../services/scoring';
+
+import { registerAssessments } from './assessments';
+
+interface MockApp {
+  post: ReturnType<typeof vi.fn>;
+  addHook: ReturnType<typeof vi.fn>;
+  decorateRequest: ReturnType<typeof vi.fn>;
+}
 
 describe('Assessment Routes - LLM Error Handling', () => {
-  let mockApp: any;
+  let mockApp: MockApp;
   let mockLlmAdapter: LlmAdapter;
-  let mockScoringService: ScoringService;
+  let mockScoringService: { gradeAndScoreAnswer: (input: unknown) => Promise<GradeOutcome> };
 
   beforeEach(() => {
     mockLlmAdapter = {
@@ -17,8 +26,8 @@ describe('Assessment Routes - LLM Error Handling', () => {
     };
 
     mockScoringService = {
-      gradeAndScoreAnswer: vi.fn(),
-    } as any;
+      gradeAndScoreAnswer: vi.fn() as (input: unknown) => Promise<GradeOutcome>,
+    };
 
     // Mock Fastify app
     mockApp = {
@@ -30,9 +39,7 @@ describe('Assessment Routes - LLM Error Handling', () => {
 
   it('should return structured error when LLM is misconfigured', async () => {
     // Setup: LLM adapter throws configuration error
-    vi.mocked(mockLlmAdapter.generateQuestion).mockRejectedValue(
-      new LLMConfigurationError()
-    );
+    vi.mocked(mockLlmAdapter.generateQuestion).mockRejectedValue(new LLMConfigurationError());
 
     // Register routes
     await registerAssessments(mockApp, {
@@ -42,11 +49,11 @@ describe('Assessment Routes - LLM Error Handling', () => {
 
     // Find the /next-question handler
     const nextQuestionCall = mockApp.post.mock.calls.find(
-      (call: any) => call[0] === '/next-question'
+      (call: unknown[]) => call[0] === '/next-question',
     );
     expect(nextQuestionCall).toBeDefined();
 
-    const handler = nextQuestionCall[2]; // The actual route handler
+    const handler = nextQuestionCall?.[2] as (req: unknown, reply: unknown) => Promise<void>; // The actual route handler
 
     // Mock request and reply
     const mockReq = {
@@ -69,12 +76,14 @@ describe('Assessment Routes - LLM Error Handling', () => {
       query: vi.fn((sql: string) => {
         if (sql.includes('select started_at')) {
           return Promise.resolve({
-            rows: [{
-              started_at: new Date().toISOString(),
-              finished_at: null,
-              job_id: 'finance-ap',
-              n: '0'
-            }],
+            rows: [
+              {
+                started_at: new Date().toISOString(),
+                finished_at: null,
+                job_id: 'finance-ap',
+                n: '0',
+              },
+            ],
           });
         }
         if (sql.includes('job_description') || sql.includes('applicant_resume')) {
@@ -96,7 +105,7 @@ describe('Assessment Routes - LLM Error Handling', () => {
       expect.objectContaining({
         ok: false,
         error: expect.any(String),
-      })
+      }),
     );
 
     // Should log the error
@@ -105,9 +114,7 @@ describe('Assessment Routes - LLM Error Handling', () => {
 
   it('should NOT return success with static question when LLM fails', async () => {
     // This test ensures we never silently fall back to ITEM_BANK
-    vi.mocked(mockLlmAdapter.generateQuestion).mockRejectedValue(
-      new Error('Network timeout')
-    );
+    vi.mocked(mockLlmAdapter.generateQuestion).mockRejectedValue(new Error('Network timeout'));
 
     await registerAssessments(mockApp, {
       scoringService: mockScoringService,
@@ -115,9 +122,9 @@ describe('Assessment Routes - LLM Error Handling', () => {
     });
 
     const nextQuestionCall = mockApp.post.mock.calls.find(
-      (call: any) => call[0] === '/next-question'
+      (call: unknown[]) => call[0] === '/next-question',
     );
-    const handler = nextQuestionCall[2];
+    const handler = nextQuestionCall?.[2] as (req: unknown, reply: unknown) => Promise<void>;
 
     const mockReq = {
       body: { assessmentId: 'test-123', difficulty: 'easy' },
@@ -137,12 +144,9 @@ describe('Assessment Routes - LLM Error Handling', () => {
     await handler(mockReq, mockReply);
 
     // Should NOT return ok: true
-    expect(mockReply.send).not.toHaveBeenCalledWith(
-      expect.objectContaining({ ok: true })
-    );
+    expect(mockReply.send).not.toHaveBeenCalledWith(expect.objectContaining({ ok: true }));
 
     // Should return error code 500
     expect(mockReply.code).toHaveBeenCalledWith(500);
   });
 });
-

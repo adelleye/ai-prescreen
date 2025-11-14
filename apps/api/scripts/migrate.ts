@@ -1,4 +1,5 @@
-import { join } from 'path';
+import { join } from 'node:path';
+
 import { MigrationRunner } from '../src/migrations/runner';
 
 async function main() {
@@ -14,13 +15,20 @@ async function main() {
       case 'rollback':
         await runner.rollback();
         break;
-      case 'status':
+      case 'status': {
         const status = await runner.status();
         // eslint-disable-next-line no-console
-        console.log('Applied migrations:', status.applied.map((m) => `${m.version}_${m.name}`).join(', '));
+        console.log(
+          'Applied migrations:',
+          status.applied.map((m) => `${m.version}_${m.name}`).join(', '),
+        );
         // eslint-disable-next-line no-console
-        console.log('Pending migrations:', status.pending.map((m) => `${m.version}_${m.name}`).join(', ') || 'None');
+        console.log(
+          'Pending migrations:',
+          status.pending.map((m) => `${m.version}_${m.name}`).join(', ') || 'None',
+        );
         break;
+      }
       default:
         // eslint-disable-next-line no-console
         console.error(`Unknown command: ${command}. Use 'migrate', 'rollback', or 'status'`);
@@ -34,5 +42,3 @@ async function main() {
 }
 
 main();
-
-
