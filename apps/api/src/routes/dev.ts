@@ -1,8 +1,9 @@
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { query } from '../db';
 import { DevTestAssessmentRequest } from '@shared/core';
-import { sendError } from '../services/errors';
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+
+import { query } from '../db';
 import { OpenAIAdapter } from '../llm/openaiProvider';
+import { sendError } from '../services/errors';
 
 /**
  * Dev-only routes for testing (disabled in production)
@@ -27,19 +28,19 @@ export async function registerDev(app: FastifyInstance, _opts: FastifyPluginOpti
       return;
     }
     const jobId = parsed.data.jobId ?? 'finance-ap';
-    
+
     // Create assessment directly
     const { rows } = await query<{ id: string }>(
       `insert into assessments (job_id, candidate_id, created_at)
        values ($1, gen_random_uuid(), now()) returning id`,
       [jobId],
     );
-    
+
     if (rows.length === 0) {
       sendError(reply, 500, 'Failed to create assessment', undefined, req);
       return;
     }
-    
+
     const inserted = rows[0];
     if (!inserted) {
       sendError(reply, 500, 'Failed to create assessment', undefined, req);
@@ -48,7 +49,7 @@ export async function registerDev(app: FastifyInstance, _opts: FastifyPluginOpti
     const assessmentId = inserted.id;
     const webBaseUrl = process.env.WEB_BASE_URL || 'http://localhost:3000';
     const testUrl = `${webBaseUrl}/assessment?devAssessmentId=${assessmentId}`;
-    
+
     return {
       ok: true,
       assessmentId,
@@ -104,4 +105,3 @@ export async function registerDev(app: FastifyInstance, _opts: FastifyPluginOpti
     }
   });
 }
-

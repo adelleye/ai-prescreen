@@ -1,8 +1,16 @@
-import { buildBarsPrompt, parseBarsFromModelText, buildQuestionPrompt, parseQuestionFromModelText } from './barsPrompt';
-import type { LlmAdapter } from './adapter';
-import { env } from '../env';
-import { z } from 'zod';
 import { createHash } from 'crypto';
+
+import { z } from 'zod';
+
+import { env } from '../env';
+
+import type { LlmAdapter } from './adapter';
+import {
+  buildBarsPrompt,
+  parseBarsFromModelText,
+  buildQuestionPrompt,
+  parseQuestionFromModelText,
+} from './barsPrompt';
 import { LLMConfigurationError, LLMHttpError, LLMResponseError } from './errors';
 
 type ChatMessage =
@@ -180,7 +188,7 @@ export class OpenAIAdapter implements LlmAdapter {
       },
     ];
     const baseUrl = env.LLM_BASE_URL || 'https://api.openai.com';
-    
+
     async function generateWithModel(model: string, seed: number) {
       const text = await callChatCompletions({
         baseUrl,
@@ -201,7 +209,7 @@ export class OpenAIAdapter implements LlmAdapter {
         difficulty: parsed.difficulty,
       };
     }
-    
+
     try {
       const randomSeed = Math.floor(Math.random() * 1000000);
       return await generateWithModel(env.LLM_MODEL_PRIMARY, randomSeed);
@@ -215,27 +223,34 @@ export class OpenAIAdapter implements LlmAdapter {
 
 /**
  * In-memory cache for LLM grading responses to reduce API costs during retries.
- * 
+ *
  * Cache behavior:
  * - Enabled via LLM_CACHE_ENABLED environment variable (default: disabled)
  * - TTL configured via LLM_CACHE_TTL_MS (default: 24 hours)
  * - Cache key: `${itemId}|${model}|${seed}|${answerHash}`
  * - Automatic cleanup: expired entries removed when cache size exceeds 1000 entries
  * - Thread-safe: Node.js single-threaded event loop ensures no race conditions
- * 
+ *
  * Memory considerations:
  * - Each entry stores a small JSON object (~100-200 bytes)
  * - At 1000 entries: ~100-200 KB memory usage
  * - Cleanup runs synchronously when threshold exceeded (minimal performance impact)
  * - Cache is module-scoped singleton, shared across all requests
- * 
+ *
  * Use cases:
  * - Prevents duplicate LLM calls during retry storms (partial failures)
  * - Reduces costs for identical answers to same questions
  * - Improves response time for cached hits
  */
 type CachedValue = {
-  value: { criteria: { policyProcedure: 0 | 1 | 2 | 3; decisionQuality: 0 | 1 | 2 | 3; evidenceSpecificity: 0 | 1 | 2 | 3 }; followUp?: string };
+  value: {
+    criteria: {
+      policyProcedure: 0 | 1 | 2 | 3;
+      decisionQuality: 0 | 1 | 2 | 3;
+      evidenceSpecificity: 0 | 1 | 2 | 3;
+    };
+    followUp?: string;
+  };
   expires: number;
 };
 const cache = new Map<string, CachedValue>();
@@ -243,7 +258,7 @@ const cache = new Map<string, CachedValue>();
 /**
  * Retrieves a value from the cache if it exists and hasn't expired.
  * Automatically removes expired entries on access.
- * 
+ *
  * @param key - Cache key (format: `${itemId}|${model}|${seed}|${answerHash}`)
  * @returns Cached value if found and valid, undefined otherwise
  */
@@ -261,7 +276,7 @@ function getFromCache(key: string) {
 /**
  * Stores a value in the cache with TTL expiration.
  * Performs automatic cleanup of expired entries when cache size exceeds 1000.
- * 
+ *
  * @param key - Cache key
  * @param value - Value to cache (BARS criteria result)
  * @param ttlMs - Time-to-live in milliseconds
@@ -277,5 +292,3 @@ function setInCache(key: string, value: CachedValue['value'], ttlMs: number) {
     }
   }
 }
-
-

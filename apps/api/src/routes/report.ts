@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+
 import { query } from '../db';
-import { getAssessmentSummary } from '../services/reportSummary';
 import { validateReportRequest, requireSession } from '../services/auth';
+import { getAssessmentSummary } from '../services/reportSummary';
 
 export async function registerReport(app: FastifyInstance, _opts: FastifyPluginOptions) {
   app.get('/csv', async (req, reply) => {

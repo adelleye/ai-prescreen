@@ -1,27 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Fastify from 'fastify';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { registerAssessments } from './assessments';
 
 const queryMock = vi.fn();
 vi.mock('../db', () => {
   return {
     query: (...args: any[]) => queryMock(...args),
-    withTransaction: vi.fn(async (callback: any) => callback({
-      query: vi.fn((sql: string) => {
-        if (sql.includes('select started_at')) {
-          return Promise.resolve({
-            rows: [{ started_at: new Date().toISOString(), finished_at: null, job_id: 'finance-ap' }],
-          });
-        }
-        if (sql.includes('select count')) {
-          return Promise.resolve({ rows: [{ n: 0 }] });
-        }
-        if (sql.includes('insert into item_events')) {
-          return Promise.resolve({ rows: [{ id: 'item-1' }] });
-        }
-        return Promise.resolve({ rows: [] });
+    withTransaction: vi.fn(async (callback: any) =>
+      callback({
+        query: vi.fn((sql: string) => {
+          if (sql.includes('select started_at')) {
+            return Promise.resolve({
+              rows: [
+                { started_at: new Date().toISOString(), finished_at: null, job_id: 'finance-ap' },
+              ],
+            });
+          }
+          if (sql.includes('select count')) {
+            return Promise.resolve({ rows: [{ n: 0 }] });
+          }
+          if (sql.includes('insert into item_events')) {
+            return Promise.resolve({ rows: [{ id: 'item-1' }] });
+          }
+          return Promise.resolve({ rows: [] });
+        }),
       }),
-    })),
+    ),
   };
 });
 
@@ -34,7 +40,9 @@ describe('assessments route persistence', () => {
     queryMock.mockImplementation((sql: string) => {
       if (sql.includes('with up as')) {
         return Promise.resolve({
-          rows: [{ started_at: new Date().toISOString(), finished_at: null, n: 0, job_id: 'finance-ap' }],
+          rows: [
+            { started_at: new Date().toISOString(), finished_at: null, n: 0, job_id: 'finance-ap' },
+          ],
         });
       }
       if (sql.startsWith('insert into item_events')) {
@@ -101,5 +109,3 @@ describe('assessments route persistence', () => {
     });
   });
 });
-
-

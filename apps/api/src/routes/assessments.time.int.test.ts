@@ -1,13 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { registerAssessments } from './assessments';
 
 vi.mock('../db', () => {
   return {
-    query: vi.fn((sql: string, params?: unknown[]) => {
+    query: vi.fn((sql: string, _params?: unknown[]) => {
       // started_at 16 minutes ago; not finished; count 0
       const started = new Date(Date.now() - 16 * 60 * 1000).toISOString();
-      if (sql.includes('with up as') || sql.includes('select') && sql.includes('job_id')) {
+      if (sql.includes('with up as') || (sql.includes('select') && sql.includes('job_id'))) {
         return Promise.resolve({
           rows: [{ started_at: started, finished_at: null, n: 0, job_id: 'finance-ap' }],
         });
@@ -17,26 +18,29 @@ vi.mock('../db', () => {
       }
       return Promise.resolve({ rows: [] });
     }),
-    withTransaction: vi.fn(async (callback: any) => callback({
-      query: vi.fn((sql: string) => {
-        if (sql.includes('select started_at')) {
-          const started = new Date(Date.now() - 16 * 60 * 1000).toISOString();
-          return Promise.resolve({
-            rows: [{ started_at: started, finished_at: null, job_id: 'finance-ap' }],
-          });
-        }
-        if (sql.includes('select count')) {
-          return Promise.resolve({ rows: [{ n: 0 }] });
-        }
-        if (sql.includes('update assessments')) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    withTransaction: vi.fn(async (callback: any) =>
+      callback({
+        query: vi.fn((sql: string) => {
+          if (sql.includes('select started_at')) {
+            const started = new Date(Date.now() - 16 * 60 * 1000).toISOString();
+            return Promise.resolve({
+              rows: [{ started_at: started, finished_at: null, job_id: 'finance-ap' }],
+            });
+          }
+          if (sql.includes('select count')) {
+            return Promise.resolve({ rows: [{ n: 0 }] });
+          }
+          if (sql.includes('update assessments')) {
+            return Promise.resolve({ rows: [] });
+          }
+          if (sql.includes('insert into item_events')) {
+            return Promise.resolve({ rows: [{ id: 'item-1' }] });
+          }
           return Promise.resolve({ rows: [] });
-        }
-        if (sql.includes('insert into item_events')) {
-          return Promise.resolve({ rows: [{ id: 'item-1' }] });
-        }
-        return Promise.resolve({ rows: [] });
+        }),
       }),
-    })),
+    ),
   };
 });
 
@@ -82,7 +86,9 @@ describe('assessments route time expiry', () => {
       },
     });
     if (res.statusCode !== 410) {
+      // eslint-disable-next-line no-console
       console.log('Expected 410, got:', res.statusCode);
+      // eslint-disable-next-line no-console
       console.log('Response:', res.payload);
     }
     expect(res.statusCode).toBe(410);
@@ -90,5 +96,3 @@ describe('assessments route time expiry', () => {
     expect(body.error).toBe('TimeExpired');
   });
 });
-
-

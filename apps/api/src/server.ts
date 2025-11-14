@@ -1,18 +1,20 @@
-import Fastify from 'fastify';
 import { pathToFileURL } from 'node:url';
-import helmet from '@fastify/helmet';
+
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import { logger } from './logger';
-import { registerMagic } from './routes/magic';
-import { registerAssessments } from './routes/assessments';
-import { registerReport } from './routes/report';
-import { registerSignals } from './routes/signals';
-import { registerReportPdf } from './routes/reportPdf';
-import { registerDev } from './routes/dev';
-import { OpenAIAdapter } from './llm/openaiProvider';
-import { createScoringService } from './services/scoring';
+import Fastify from 'fastify';
+
 import { env, validateEnv } from './env';
+import { OpenAIAdapter } from './llm/openaiProvider';
+import { logger } from './logger';
+import { registerAssessments } from './routes/assessments';
+import { registerDev } from './routes/dev';
+import { registerMagic } from './routes/magic';
+import { registerReport } from './routes/report';
+import { registerReportPdf } from './routes/reportPdf';
+import { registerSignals } from './routes/signals';
+import { createScoringService } from './services/scoring';
 
 export async function buildServer() {
   // Fail fast on missing env in production-like environments

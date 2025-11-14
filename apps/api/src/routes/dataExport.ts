@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+
 import { query } from '../db';
 import { requireSession } from '../services/auth';
 
@@ -63,5 +65,3 @@ export async function registerDataExport(app: FastifyInstance, _opts: FastifyPlu
     });
   });
 }
-
-

@@ -26,16 +26,15 @@ describe('server dev route gating', () => {
       method: 'POST',
       url: '/dev/test-llm',
       headers: {
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
       },
     });
     if (res.statusCode !== 404) {
+      // eslint-disable-next-line no-console
       console.log('Expected 404, got:', res.statusCode);
+      // eslint-disable-next-line no-console
       console.log('Response:', res.payload);
     }
     expect(res.statusCode).toBe(404);
   });
 });
-
-
-

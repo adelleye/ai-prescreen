@@ -1,5 +1,6 @@
-import type { LlmAdapter } from '../llm/adapter';
 import { scoreBarsCriterion } from '@shared/core';
+
+import type { LlmAdapter } from '../llm/adapter';
 
 export type GradeOutcome = {
   criteria: { policyProcedure: number; decisionQuality: number; evidenceSpecificity: number };

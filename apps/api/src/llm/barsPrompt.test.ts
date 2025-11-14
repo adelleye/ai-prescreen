@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { parseBarsFromModelText, buildBarsPrompt } from './barsPrompt';
 
 describe('BARS prompt & parser', () => {
@@ -38,13 +39,18 @@ describe('BARS prompt & parser', () => {
       jobContext: 'Accounts Payable; controls: PO, 2-eyes, DOA',
       applicantContext: '3y AP, SAP',
       history: [
-        { question: 'How would you verify a vendor invoice before processing payment?', answer: 'Check PO and approvals.' },
+        {
+          question: 'How would you verify a vendor invoice before processing payment?',
+          answer: 'Check PO and approvals.',
+        },
         { question: 'Another Q', answer: 'Another A' },
       ],
     });
     expect(s).toContain('JobContext: Accounts Payable; controls: PO, 2-eyes, DOA');
     expect(s).toContain('ApplicantContext: 3y AP, SAP');
-    expect(s).toContain('PreviousQ: How would you verify a vendor invoice before processing payment?');
+    expect(s).toContain(
+      'PreviousQ: How would you verify a vendor invoice before processing payment?',
+    );
     expect(s).toContain('PreviousA: Check PO and approvals.');
   });
 });

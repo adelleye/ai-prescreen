@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('../db', () => {
   return {
@@ -46,7 +46,9 @@ describe('report csv', () => {
       },
     });
     if (res.statusCode !== 200) {
+      // eslint-disable-next-line no-console
       console.log('Expected 200, got:', res.statusCode);
+      // eslint-disable-next-line no-console
       console.log('Response:', res.payload);
     }
     expect(res.statusCode).toBe(200);

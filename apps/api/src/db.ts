@@ -1,4 +1,5 @@
 import { Pool, type QueryResult, type QueryResultRow, type PoolClient } from 'pg';
+
 import { env } from './env';
 
 let pool: Pool | null = null;
@@ -22,14 +23,12 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
 /**
  * Executes a function within a database transaction.
  * Automatically handles BEGIN, COMMIT, and ROLLBACK.
- * 
+ *
  * @param fn - Function that receives a PoolClient and returns a Promise
  * @returns Promise resolving to the return value of fn
  * @throws Error if transaction fails (rollback is automatic)
  */
-export async function withTransaction<T>(
-  fn: (client: PoolClient) => Promise<T>,
-): Promise<T> {
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

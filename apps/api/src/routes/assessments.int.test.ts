@@ -1,9 +1,11 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+
 import { registerAssessments } from './assessments';
 
 vi.mock('../db', () => {
   // Provide a mutable sequence of results for successive calls
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let calls = 0;
   return {
     query: vi.fn((sql: string) => {
@@ -19,25 +21,30 @@ vi.mock('../db', () => {
       }
       return Promise.resolve({ rows: [] });
     }),
-    withTransaction: vi.fn(async (callback: any) => callback({
-      query: vi.fn((sql: string) => {
-        if (sql.includes('select started_at, finished_at')) {
-          return Promise.resolve({
-            rows: [{ started_at: new Date().toISOString(), finished_at: null, job_id: 'finance-ap' }],
-          });
-        }
-        if (sql.includes('select count')) {
-          return Promise.resolve({ rows: [{ n: 18 }] });
-        }
-        if (sql.includes('update assessments')) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    withTransaction: vi.fn(async (callback: any) =>
+      callback({
+        query: vi.fn((sql: string) => {
+          if (sql.includes('select started_at, finished_at')) {
+            return Promise.resolve({
+              rows: [
+                { started_at: new Date().toISOString(), finished_at: null, job_id: 'finance-ap' },
+              ],
+            });
+          }
+          if (sql.includes('select count')) {
+            return Promise.resolve({ rows: [{ n: 18 }] });
+          }
+          if (sql.includes('update assessments')) {
+            return Promise.resolve({ rows: [] });
+          }
+          if (sql.includes('insert into item_events')) {
+            return Promise.resolve({ rows: [{ id: 'item-1' }] });
+          }
           return Promise.resolve({ rows: [] });
-        }
-        if (sql.includes('insert into item_events')) {
-          return Promise.resolve({ rows: [{ id: 'item-1' }] });
-        }
-        return Promise.resolve({ rows: [] });
+        }),
       }),
-    })),
+    ),
   };
 });
 
@@ -62,6 +69,7 @@ describe('assessments route', () => {
         difficulty: 'easy',
       })),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await app.register(registerAssessments as any, {
       prefix: '/assessments',
       scoringService: fakeScoring,

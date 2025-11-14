@@ -1,5 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-var-requires */
 import Fastify from 'fastify';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+
 import { registerAssessments } from './assessments';
 import { registerMagic } from './magic';
 
@@ -158,15 +160,15 @@ vi.mock('@shared/core', async (orig) => {
   return {
     ...actual,
     // Minimal fetchWithTimeout stub for magic.ts; not used in this flow test
-    fetchWithTimeout: vi.fn((url: string, opts: any) =>
-      fetch(url, opts),
-    ),
+    fetchWithTimeout: vi.fn((url: string, opts: any) => fetch(url, opts)),
   };
 });
 
 // Mock auth token creator to return a stable token string (we don't verify it here)
 vi.mock('../services/auth', () => ({
-  createSessionToken: vi.fn(async (_assessmentId: string, _sessionId: string) => 'test-session-token'),
+  createSessionToken: vi.fn(
+    async (_assessmentId: string, _sessionId: string) => 'test-session-token',
+  ),
 }));
 
 // For this flow test, we don't need real JWT/crypto; we will bypass /magic/issue and hit /magic/consume
@@ -215,7 +217,7 @@ describe('assessment end-to-end flow (magic → first question → submit → ne
     // First, insert a corresponding magic_links row via the mocked DB query
     const { query } = require('../db') as any;
     await query(
-      'insert into magic_links (email_enc, token_hash, nonce, expires_at, consumed_at, ip, ua) values ($1,$2,$3,now() + interval \'24 hours\',null,$4,$5)',
+      "insert into magic_links (email_enc, token_hash, nonce, expires_at, consumed_at, ip, ua) values ($1,$2,$3,now() + interval '24 hours',null,$4,$5)",
       ['enc-email', 'dummy-hash', 'nonce-1', '127.0.0.1', 'test-agent'],
     );
 
@@ -228,10 +230,10 @@ describe('assessment end-to-end flow (magic → first question → submit → ne
       payload: { token: dummyToken },
     });
 
-    expect(consumeRes.statusCode).toBe(500 /* CreateAssessmentFailed or similar without real JWT */);
+    expect(consumeRes.statusCode).toBe(
+      500 /* CreateAssessmentFailed or similar without real JWT */,
+    );
     // Note: Full JWT+crypto stack is exercised in other tests; here we focus on the happy-path HTTP contract.
     // The real end-to-end (including JWT) is best validated in higher-level integration or staging tests.
   });
 });
-
-

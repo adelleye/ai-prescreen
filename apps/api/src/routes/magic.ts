@@ -1,8 +1,5 @@
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { createHash, randomBytes } from 'crypto';
-import { SignJWT, jwtVerify } from 'jose';
-import { query, withTransaction } from '../db';
-import { env } from '../env';
+
 import {
   IssueMagicLinkRequest,
   ConsumeMagicLinkRequest,
@@ -10,8 +7,13 @@ import {
   encryptPII,
   fetchWithTimeout,
 } from '@shared/core';
-import { sendError } from '../services/errors';
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { SignJWT, jwtVerify } from 'jose';
+
+import { query, withTransaction } from '../db';
+import { env } from '../env';
 import { createSessionToken } from '../services/auth';
+import { sendError } from '../services/errors';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -85,10 +87,22 @@ export async function registerMagic(app: FastifyInstance, _opts: FastifyPluginOp
           timeoutMs: 10_000,
         });
         if (!res.ok) {
-          await logAudit('postmark.send.failed', 'magic_link', tokenHash, req.ip, req.headers['user-agent'] ?? '');
+          await logAudit(
+            'postmark.send.failed',
+            'magic_link',
+            tokenHash,
+            req.ip,
+            req.headers['user-agent'] ?? '',
+          );
         }
       } catch {
-        await logAudit('postmark.send.error', 'magic_link', tokenHash, req.ip, req.headers['user-agent'] ?? '');
+        await logAudit(
+          'postmark.send.error',
+          'magic_link',
+          tokenHash,
+          req.ip,
+          req.headers['user-agent'] ?? '',
+        );
       }
     }
 
@@ -155,7 +169,9 @@ export async function registerMagic(app: FastifyInstance, _opts: FastifyPluginOp
     try {
       const result = await withTransaction(async (client) => {
         // Mark consumed (single-use)
-        await client.query('update magic_links set consumed_at = now() where token_hash = $1', [tokenHash]);
+        await client.query('update magic_links set consumed_at = now() where token_hash = $1', [
+          tokenHash,
+        ]);
 
         // Create assessment row
         const { rows: aRows } = await client.query<{ id: string }>(
@@ -186,22 +202,34 @@ export async function registerMagic(app: FastifyInstance, _opts: FastifyPluginOp
       assessmentId = result.assessmentId;
       sessionId = result.sessionId;
     } catch (err) {
-      req.log.error({
-        event: 'magic_link_consume_failed',
-        tokenHash,
-        error: err instanceof Error ? {
-          name: err.name,
-          message: err.message,
-          stack: err.stack,
-        } : err,
-        requestId: req.id,
-      }, 'Failed to consume magic link');
+      req.log.error(
+        {
+          event: 'magic_link_consume_failed',
+          tokenHash,
+          error:
+            err instanceof Error
+              ? {
+                  name: err.name,
+                  message: err.message,
+                  stack: err.stack,
+                }
+              : err,
+          requestId: req.id,
+        },
+        'Failed to consume magic link',
+      );
       sendError(reply, 500, 'CreateAssessmentFailed', undefined, req, err);
       return;
     }
 
     // Audit log
-    await logAudit('magic.consume', 'assessment', assessmentId, req.ip, req.headers['user-agent'] ?? '');
+    await logAudit(
+      'magic.consume',
+      'assessment',
+      assessmentId,
+      req.ip,
+      req.headers['user-agent'] ?? '',
+    );
 
     // Create session token
     const sessionToken = await createSessionToken(assessmentId, sessionId);

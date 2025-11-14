@@ -1,10 +1,12 @@
-import type { BarsCriteria } from './adapter';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from 'zod';
+
+import type { BarsCriteria } from './adapter';
 
 /**
  * Sanitizes user input to prevent prompt injection attacks.
  * Escapes special characters that could be interpreted as instructions.
- * 
+ *
  * @param input - User-provided text to sanitize
  * @returns Sanitized text safe for inclusion in LLM prompts
  */
@@ -154,7 +156,7 @@ export function buildQuestionPrompt(params: {
 
 /**
  * Validates that LLM output doesn't contain suspicious patterns indicating prompt injection.
- * 
+ *
  * @param text - Text to validate
  * @returns true if text appears safe, false if suspicious patterns detected
  */
@@ -166,7 +168,7 @@ function validateOutput(text: string): boolean {
     /\[SYSTEM:/gi,
     /<\|system\|>/gi,
   ];
-  
+
   for (const pattern of suspiciousPatterns) {
     if (pattern.test(text)) {
       return false;
@@ -200,12 +202,15 @@ export function parseBarsFromModelText(modelText: string): {
   if (!res.success) {
     throw new Error('Invalid model response (schema)');
   }
-  
+
   // Additional validation: check for score anomalies (all max scores might indicate manipulation)
   const { criteria } = res.data;
-  const allMax = criteria.policyProcedure === 3 && criteria.decisionQuality === 3 && criteria.evidenceSpecificity === 3;
+  const allMax =
+    criteria.policyProcedure === 3 &&
+    criteria.decisionQuality === 3 &&
+    criteria.evidenceSpecificity === 3;
   // Note: We don't reject all-max scores, but this could be logged for monitoring
-  
+
   return {
     criteria: criteria as BarsCriteria,
     ...(res.data.followUp && { followUp: res.data.followUp }),

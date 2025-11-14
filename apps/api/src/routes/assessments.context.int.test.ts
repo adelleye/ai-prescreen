@@ -1,5 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Fastify from 'fastify';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+
 import { registerAssessments } from './assessments';
 
 // Mock DB layer
@@ -37,8 +39,16 @@ vi.mock('../db', () => {
         // Previous two events, newest first
         return Promise.resolve({
           rows: [
-            { item_id: 'q_m1a1b2c3', answer: 'Most recent answer', question: 'A vendor requests ₦500000 without PO. What controls?' },
-            { item_id: 'q_e1a1b2c3', answer: 'Previous answer', question: 'How would you verify a vendor invoice before processing payment?' },
+            {
+              item_id: 'q_m1a1b2c3',
+              answer: 'Most recent answer',
+              question: 'A vendor requests ₦500000 without PO. What controls?',
+            },
+            {
+              item_id: 'q_e1a1b2c3',
+              answer: 'Previous answer',
+              question: 'How would you verify a vendor invoice before processing payment?',
+            },
           ],
         });
       }
@@ -47,22 +57,26 @@ vi.mock('../db', () => {
       }
       return Promise.resolve({ rows: [] });
     }),
-    withTransaction: vi.fn(async (callback: any) => callback({
-      query: vi.fn((sql: string) => {
-        if (sql.includes('select started_at')) {
-          return Promise.resolve({
-            rows: [{ started_at: new Date().toISOString(), finished_at: null, job_id: 'finance-ap' }],
-          });
-        }
-        if (sql.includes('select count')) {
-          return Promise.resolve({ rows: [{ n: 0 }] });
-        }
-        if (sql.includes('insert into item_events')) {
-          return Promise.resolve({ rows: [{ id: 'item-1' }] });
-        }
-        return Promise.resolve({ rows: [] });
+    withTransaction: vi.fn(async (callback: any) =>
+      callback({
+        query: vi.fn((sql: string) => {
+          if (sql.includes('select started_at')) {
+            return Promise.resolve({
+              rows: [
+                { started_at: new Date().toISOString(), finished_at: null, job_id: 'finance-ap' },
+              ],
+            });
+          }
+          if (sql.includes('select count')) {
+            return Promise.resolve({ rows: [{ n: 0 }] });
+          }
+          if (sql.includes('insert into item_events')) {
+            return Promise.resolve({ rows: [{ id: 'item-1' }] });
+          }
+          return Promise.resolve({ rows: [] });
+        }),
       }),
-    })),
+    ),
   };
 });
 

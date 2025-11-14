@@ -1,5 +1,6 @@
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { IntegrityEventSchema } from '@shared/core';
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+
 import { sendError } from '../services/errors';
 
 export async function registerSignals(app: FastifyInstance, _opts: FastifyPluginOptions) {

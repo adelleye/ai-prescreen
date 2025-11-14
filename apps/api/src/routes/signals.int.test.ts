@@ -34,16 +34,15 @@ describe('signals route', () => {
       payload,
       headers: {
         'X-Dev-Mode': 'true',
-        'Origin': 'http://localhost:3000',
+        Origin: 'http://localhost:3000',
       },
     });
     if (res.statusCode !== 204) {
+      // eslint-disable-next-line no-console
       console.log('Expected 204, got:', res.statusCode);
+      // eslint-disable-next-line no-console
       console.log('Response:', res.payload);
     }
     expect(res.statusCode).toBe(204);
   });
 });
-
-
-

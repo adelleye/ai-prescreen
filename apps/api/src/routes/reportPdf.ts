@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { generateAssessmentPdf } from '../services/reportPdf';
-import { validateReportRequest, requireSession } from '../services/auth';
+
 import { query } from '../db';
+import { validateReportRequest, requireSession } from '../services/auth';
+import { generateAssessmentPdf } from '../services/reportPdf';
 
 export async function registerReportPdf(app: FastifyInstance, _opts: FastifyPluginOptions) {
   app.get('/pdf', async (req, reply) => {
@@ -37,7 +39,7 @@ export async function registerReportPdf(app: FastifyInstance, _opts: FastifyPlug
         req.headers['user-agent'] ?? '',
       ],
     );
-    
+
     const pdfBytes = await generateAssessmentPdf(assessmentId);
     reply
       .header('content-type', 'application/pdf')

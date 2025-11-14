@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module 'pdf-lib' {
   export class PDFDocument {
     static create(): Promise<PDFDocument>;
@@ -10,5 +11,3 @@ declare module 'pdf-lib' {
   }
   export function rgb(r: number, g: number, b: number): any;
 }
-
-

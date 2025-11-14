@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+
 import type { LlmAdapter } from '../llm/adapter';
+
 import { createScoringService } from './scoring';
 
 describe('scoring service', () => {
@@ -40,5 +42,3 @@ describe('scoring service', () => {
     expect(res.followUp).toBe('Be specific.');
   });
 });
-
-

@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 /**
  * Sends a standardized error response and logs error details server-side.
  * Error details are logged but not exposed to clients in production.
- * 
+ *
  * @param reply - Fastify reply object
  * @param code - HTTP status code
  * @param error - Error code string (e.g., 'BadRequest', 'NotFound')
@@ -26,7 +27,7 @@ export function sendError(
     requestId: req?.id,
     assessmentId: (req as any)?.session?.assessmentId,
   };
-  
+
   if (err instanceof Error) {
     logContext.error = {
       name: err.name,
@@ -36,11 +37,11 @@ export function sendError(
   } else if (err) {
     logContext.error = err;
   }
-  
+
   if (message) {
     logContext.userMessage = message;
   }
-  
+
   // Use appropriate log level based on status code
   if (code >= 500) {
     req?.log?.error(logContext, `Server error: ${error}`);
@@ -49,7 +50,7 @@ export function sendError(
   } else {
     req?.log?.info(logContext, `Response: ${error}`);
   }
-  
+
   const payload: { ok: false; error: string; message?: string } = { ok: false, error };
   // Only include message in development or for specific error codes
   if (message && (process.env.NODE_ENV !== 'production' || code >= 500)) {
@@ -57,4 +58,3 @@ export function sendError(
   }
   reply.code(code).send(payload);
 }
-

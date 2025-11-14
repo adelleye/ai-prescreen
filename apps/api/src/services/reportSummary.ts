@@ -1,5 +1,6 @@
-import { query } from '../db';
 import { computeIntegrityRisk, type IntegrityEvent } from '@shared/core';
+
+import { query } from '../db';
 
 export type AssessmentSummary = {
   totalScore: number; // 0-100
@@ -30,6 +31,3 @@ export async function getAssessmentSummary(assessmentId: string): Promise<Assess
 
   return { totalScore, integrity };
 }
-
-
-

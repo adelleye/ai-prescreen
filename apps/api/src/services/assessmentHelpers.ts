@@ -1,7 +1,8 @@
 import { query } from '../db';
+
 import type { AssessmentContext } from './contextBuilder';
 
-export type StopRuleResult = 
+export type StopRuleResult =
   | { shouldStop: false }
   | { shouldStop: true; reason: 'MAX_ITEMS' | 'TIME'; error: 'MaxItemsReached' | 'TimeExpired' };
 
@@ -11,7 +12,7 @@ const MAX_TIME_MS = 15 * 60 * 1000; // 15 minutes
 /**
  * Checks if assessment should stop based on stop rules (MAX_ITEMS or TIME).
  * If stop condition is met, updates the assessment's finished_at and stop_reason.
- * 
+ *
  * @param assessmentId - The assessment ID to check
  * @param numItems - Current number of items completed
  * @param startedAt - ISO timestamp when assessment started (null if not started)
@@ -62,7 +63,7 @@ export async function checkStopRules(
 /**
  * Fetches assessment context fields (job description, company bio, recruiter notes, resume text, application answers).
  * Gracefully handles missing columns if migration hasn't been run yet.
- * 
+ *
  * @param assessmentId - The assessment ID to fetch context for
  * @returns AssessmentContext object with context fields (empty object if columns don't exist)
  */
@@ -90,7 +91,7 @@ export type AssessmentMetadata = {
 /**
  * Fetches assessment metadata including started_at, finished_at, job_id, and item count.
  * Optionally updates started_at if it's null (for first submit).
- * 
+ *
  * @param assessmentId - The assessment ID to fetch metadata for
  * @param updateStartedAt - If true, updates started_at to now() if it's null
  * @returns Promise resolving to AssessmentMetadata array
@@ -138,7 +139,7 @@ export async function fetchAssessmentMetadata(
 /**
  * Validates that an assessment exists and is active (not finished).
  * This is a state validation check - ensures the assessment can still accept submissions.
- * 
+ *
  * @param metaRows - Query result rows containing assessment metadata
  * @returns AssessmentMetadata if valid and active, null if not found or already finished
  */
@@ -165,7 +166,7 @@ export type QuestionHistoryItem = {
 
 /**
  * Builds question history from previous item events.
- * 
+ *
  * @param prevRows - Query result rows from item_events table
  * @param jobId - Job ID for fallback question text
  * @param getQuestionText - Function to get question text by jobId and itemId
@@ -187,4 +188,3 @@ export function buildQuestionHistory(
   }
   return history;
 }
-

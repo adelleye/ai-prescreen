@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // We need to test the cache functions, but they're not exported.
@@ -42,8 +43,7 @@ describe('OpenAIAdapter cache behavior', () => {
  * is better suited for integration tests that exercise the full OpenAIAdapter
  * with mocked LLM responses. Unit testing private cache functions would require
  * exposing internals or using reflection, which violates encapsulation.
- * 
+ *
  * Cache cleanup behavior (removing expired entries at 1000+ entries) is tested
  * implicitly through load/integration tests that verify memory doesn't grow unbounded.
  */
-
