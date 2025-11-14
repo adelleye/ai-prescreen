@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyReply } from 'fastify';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 
 import type { LlmAdapter } from '../llm/adapter';
 import { LLMConfigurationError } from '../llm/errors';
@@ -42,7 +42,7 @@ describe('Assessment Routes - LLM Error Handling', () => {
     vi.mocked(mockLlmAdapter.generateQuestion).mockRejectedValue(new LLMConfigurationError());
 
     // Register routes
-    await registerAssessments(mockApp, {
+    await registerAssessments(mockApp as any, {
       scoringService: mockScoringService,
       llmAdapter: mockLlmAdapter,
     });
@@ -116,7 +116,7 @@ describe('Assessment Routes - LLM Error Handling', () => {
     // This test ensures we never silently fall back to ITEM_BANK
     vi.mocked(mockLlmAdapter.generateQuestion).mockRejectedValue(new Error('Network timeout'));
 
-    await registerAssessments(mockApp, {
+    await registerAssessments(mockApp as any, {
       scoringService: mockScoringService,
       llmAdapter: mockLlmAdapter,
     });

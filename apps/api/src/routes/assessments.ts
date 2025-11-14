@@ -1,4 +1,4 @@
-import { SubmitAnswerRequest, NextQuestionRequest , getQuestionText } from '@shared/core';
+import { SubmitAnswerRequest, NextQuestionRequest, getQuestionText } from '@shared/core';
 import type { FastifyInstance, FastifyPluginAsync, FastifyRequest } from 'fastify';
 
 import { query, withTransaction } from '../db';
@@ -309,16 +309,18 @@ const registerAssessments: FastifyPluginAsync<{
           followUp: outcome.followUp,
         };
       } catch (err: unknown) {
-        if (err?.code === '23505') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const error = err as any;
+        if (error?.code === '23505') {
           // Unique constraint violation on (assessment_id, item_id)
           sendError(reply, 409, 'DuplicateSubmission', undefined, req);
           return;
         }
-        if (err?.message === 'MaxItemsReached') {
+        if (error?.message === 'MaxItemsReached') {
           sendError(reply, 410, 'AssessmentFinished', undefined, req);
           return;
         }
-        if (err?.message === 'AssessmentFinished') {
+        if (error?.message === 'AssessmentFinished') {
           sendError(reply, 410, 'AssessmentFinished', undefined, req);
           return;
         }

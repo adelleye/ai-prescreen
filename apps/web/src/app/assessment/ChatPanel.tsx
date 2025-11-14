@@ -309,7 +309,7 @@ export function ChatPanel({
                 key={index}
                 message={message}
                 index={index}
-                isLastMessage={index === messages.length - 1 && !loading}
+                _isLastMessage={index === messages.length - 1 && !loading}
               />
             ))}
 
@@ -527,7 +527,7 @@ export function ChatPanel({
 interface MessageBubbleProps {
   message: ChatMessage;
   index: number;
-  isLastMessage: boolean;
+  _isLastMessage: boolean;
 }
 
 function MessageBubble({ message, index, _isLastMessage }: MessageBubbleProps) {
