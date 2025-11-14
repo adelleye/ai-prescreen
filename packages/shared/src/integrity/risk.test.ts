@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { computeIntegrityRisk, type IntegrityEvent } from './risk';
 
 describe('computeIntegrityRisk', () => {
@@ -10,7 +11,7 @@ describe('computeIntegrityRisk', () => {
       { type: 'paste', at: new Date().toISOString(), itemId: 'q2' },
       { type: 'latencyOutlier', at: new Date().toISOString(), itemId: 'q3' },
       { type: 'latencyOutlier', at: new Date().toISOString(), itemId: 'q3' },
-      { type: 'latencyOutlier', at: new Date().toISOString(), itemId: 'q3' }
+      { type: 'latencyOutlier', at: new Date().toISOString(), itemId: 'q3' },
     ];
     const res = computeIntegrityRisk(events);
     expect(res.risk).toBeLessThanOrEqual(1);
@@ -24,5 +25,3 @@ describe('computeIntegrityRisk', () => {
     expect(res.band).toBe('Low');
   });
 });
-
-

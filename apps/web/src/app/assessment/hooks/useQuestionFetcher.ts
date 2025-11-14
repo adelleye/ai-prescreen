@@ -1,6 +1,7 @@
+import { fetchWithTimeout } from '@shared/core';
 import { useState, useCallback } from 'react';
 import type { RefObject } from 'react';
-import { fetchWithTimeout } from '@shared/core';
+
 import { apiUrl } from '../../../lib/api';
 
 export type QuestionData = {
@@ -39,7 +40,11 @@ export function useQuestionFetcher(
           // eslint-disable-next-line no-console
           console.warn('Cannot fetch question: already loading');
         }
-        return { data: null, errorCode: 'NotReady', errorMessage: 'Question fetch already in progress' };
+        return {
+          data: null,
+          errorCode: 'NotReady',
+          errorMessage: 'Question fetch already in progress',
+        };
       }
       setLoadingQuestion(true);
       try {
@@ -62,11 +67,11 @@ export function useQuestionFetcher(
           timeoutMs: 15000,
           signal: netCtrlRef.current.signal,
         });
-        
+
         if (res.status === 410) {
           return { data: null, errorCode: 'AssessmentFinished' };
         }
-        
+
         if (!res.ok) {
           // Try to parse error response
           let errorCode = 'QuestionGenerationFailed';
@@ -79,7 +84,7 @@ export function useQuestionFetcher(
           } catch {
             // Fallback to generic error
           }
-          
+
           if (process.env.NODE_ENV === 'development') {
             // eslint-disable-next-line no-console
             console.error('Next question request failed:', {
@@ -88,17 +93,17 @@ export function useQuestionFetcher(
               errorMessage,
             });
           }
-          
+
           return { data: null, errorCode, errorMessage };
         }
-        
+
         const data = await res.json().catch(() => null);
-        
+
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
           console.log('Question fetch response:', { status: res.status, data });
         }
-        
+
         if (data?.ok && data.question) {
           return {
             data: {
@@ -108,24 +113,32 @@ export function useQuestionFetcher(
             },
           };
         }
-        
+
         // Log invalid response details for debugging
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
-          console.error('Invalid response format:', { data, hasOk: data?.ok, hasQuestion: !!data?.question });
+          console.error('Invalid response format:', {
+            data,
+            hasOk: data?.ok,
+            hasQuestion: !!data?.question,
+          });
         }
-        
-        return { data: null, errorCode: 'InvalidResponse', errorMessage: 'Invalid response from server' };
+
+        return {
+          data: null,
+          errorCode: 'InvalidResponse',
+          errorMessage: 'Invalid response from server',
+        };
       } catch (err) {
         // Network error
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
           console.error('Failed to fetch question:', err);
         }
-        return { 
-          data: null, 
-          errorCode: 'NetworkError', 
-          errorMessage: err instanceof Error ? err.message : 'Network request failed'
+        return {
+          data: null,
+          errorCode: 'NetworkError',
+          errorMessage: err instanceof Error ? err.message : 'Network request failed',
         };
       } finally {
         setLoadingQuestion(false);

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { fetchWithTimeout, isValidUUID } from '@shared/core';
+import { useState, useEffect, useRef } from 'react';
+
 import { apiUrl } from '../../../lib/api';
 
 /**
@@ -17,13 +18,13 @@ export function useAssessmentState() {
     const devAssessmentId = u.searchParams.get('devAssessmentId');
     const cachedAssessmentId = sessionStorage.getItem('assessmentId');
     const cachedSessionToken = sessionStorage.getItem('sessionToken');
-    
+
     // Validate cached assessmentId is a valid UUID, clear if invalid
     if (cachedAssessmentId && !isValidUUID(cachedAssessmentId)) {
       sessionStorage.removeItem('assessmentId');
       sessionStorage.removeItem('sessionToken');
     }
-    
+
     // Dev mode: use assessmentId directly (no session required for dev)
     // Prioritize URL parameter over cached value to ensure we use the correct UUID
     if (devAssessmentId) {
@@ -39,7 +40,7 @@ export function useAssessmentState() {
         sessionStorage.removeItem('assessmentId');
       }
     }
-    
+
     async function consume() {
       try {
         if (!netCtrlRef.current) netCtrlRef.current = new AbortController();
@@ -74,7 +75,7 @@ export function useAssessmentState() {
         setSessionToken(cachedSessionToken);
       }
     }
-    
+
     async function createDevAssessment() {
       // In dev mode, auto-create a valid assessment if none exists
       try {
@@ -102,7 +103,7 @@ export function useAssessmentState() {
         // ignore
       }
     }
-    
+
     if (token) {
       consume();
     } else {
@@ -121,4 +122,3 @@ export function useAssessmentState() {
 
   return { assessmentId, sessionToken, netCtrlRef };
 }
-

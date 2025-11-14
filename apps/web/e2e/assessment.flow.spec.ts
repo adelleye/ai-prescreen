@@ -14,9 +14,12 @@ test.describe('Assessment flow', () => {
 
   test('integrity beacons capture paste', async ({ page }) => {
     await page.addInitScript(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).__beacons = [];
       const orig = navigator.sendBeacon?.bind(navigator);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (navigator as any).sendBeacon = (url: string, data: BodyInit) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).__beacons.push({ url, data: String(data) });
         return orig ? orig(url, data) : true;
       };
@@ -27,9 +30,15 @@ test.describe('Assessment flow', () => {
       const evt = new ClipboardEvent('paste');
       document.dispatchEvent(evt);
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const beacons = await page.evaluate(() => (window as any).__beacons);
     expect(Array.isArray(beacons)).toBe(true);
-    const found = beacons.find((b: any) => String(b.url).includes('/api/signals') && String(b.data).includes('"type":"paste"'));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const found = beacons.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (b: any) =>
+        String(b.url).includes('/api/signals') && String(b.data).includes('"type":"paste"'),
+    );
     expect(found).toBeTruthy();
   });
 
@@ -40,5 +49,3 @@ test.describe('Assessment flow', () => {
     await expect(page).toHaveURL(/\/assessment/);
   });
 });
-
-

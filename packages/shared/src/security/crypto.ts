@@ -28,6 +28,7 @@ function base64ToBytes(b64: string): Uint8Array {
     return bytes;
   }
   // Node path (Buffer is available on Node globals)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const NodeBuffer = (globalThis as any).Buffer as any;
   if (NodeBuffer) {
     return new Uint8Array(NodeBuffer.from(b64, 'base64'));
@@ -46,6 +47,7 @@ function bytesToBase64(bytes: Uint8Array): string {
     return btoa(binary);
   }
   // Node path
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const NodeBuffer = (globalThis as any).Buffer as any;
   if (NodeBuffer) {
     return NodeBuffer.from(bytes).toString('base64');
@@ -57,7 +59,7 @@ export async function importAesGcmKey(base64Key: string): Promise<CryptoKey> {
   const raw = base64ToBytes(base64Key);
   return getSubtle().importKey('raw', raw as unknown as BufferSource, 'AES-GCM', false, [
     'encrypt',
-    'decrypt'
+    'decrypt',
   ]);
 }
 
@@ -67,7 +69,7 @@ export async function encryptPII(key: CryptoKey, plaintext: string): Promise<str
   const cipher = await getSubtle().encrypt(
     { name: 'AES-GCM', iv: iv as unknown as BufferSource },
     key,
-    encoder.encode(plaintext) as unknown as BufferSource
+    encoder.encode(plaintext) as unknown as BufferSource,
   );
   const cipherBytes = new Uint8Array(cipher as ArrayBuffer);
   const packed = new Uint8Array(iv.length + cipherBytes.length);
@@ -91,4 +93,3 @@ export async function decryptPII(key: CryptoKey, ciphertextB64: string): Promise
   const decoder = new TextDecoder();
   return decoder.decode(plaintext);
 }
-

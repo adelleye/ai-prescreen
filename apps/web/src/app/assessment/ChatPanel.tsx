@@ -35,6 +35,7 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [inputHeight, setInputHeight] = useState(48);
 
   // Auto scroll to bottom smoothly
@@ -529,7 +530,7 @@ interface MessageBubbleProps {
   isLastMessage: boolean;
 }
 
-function MessageBubble({ message, index, isLastMessage }: MessageBubbleProps) {
+function MessageBubble({ message, index, _isLastMessage }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
   return (

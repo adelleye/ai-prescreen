@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { createInitialStaircaseState, transitionStep, selectNextItem, type ItemTemplate } from './staircase';
+import { describe, expect, it } from 'vitest';
+
+import {
+  createInitialStaircaseState,
+  selectNextItem,
+  transitionStep,
+  type ItemTemplate,
+} from './staircase';
 
 describe('staircase', () => {
   it('initial state is easy with empty askedIds', () => {
@@ -36,5 +42,3 @@ describe('staircase', () => {
     expect(second?.nextState.askedIds.has(first!.nextItem.id)).toBe(true);
   });
 });
-
-

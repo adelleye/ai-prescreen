@@ -1,5 +1,5 @@
-import React from 'react';
 import Link from 'next/link';
+import React from 'react';
 
 export default function NotFound() {
   return (
@@ -20,4 +20,3 @@ export default function NotFound() {
     </div>
   );
 }
-

@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { LiveRegion } from '@ui/kit';
 import { createInitialStaircaseState, fetchWithTimeout } from '@shared/core';
+import { LiveRegion } from '@ui/kit';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { apiUrl } from '../../lib/api';
 import { trackIntegritySignals } from '../../lib/integrity';
+
+import { ChatPanel } from './ChatPanel';
 import { useAssessmentState } from './hooks/useAssessmentState';
 import { useQuestionFetcher, type QuestionData } from './hooks/useQuestionFetcher';
 import { useTimer } from './hooks/useTimer';
-import { ErrorBoundary } from '../../components/ErrorBoundary';
-import { ChatPanel } from './ChatPanel';
-import { apiUrl } from '../../lib/api';
 
 const MAX_ITEMS = 18;
 
@@ -25,7 +27,11 @@ function AssessmentContent() {
   const stateRef = useRef(createInitialStaircaseState(MAX_ITEMS));
 
   const { assessmentId, sessionToken, netCtrlRef } = useAssessmentState();
-  const { fetchNextQuestion, loadingQuestion } = useQuestionFetcher(assessmentId, sessionToken, netCtrlRef);
+  const { fetchNextQuestion, loadingQuestion } = useQuestionFetcher(
+    assessmentId,
+    sessionToken,
+    netCtrlRef,
+  );
   const firstQuestionLoadedForAssessmentRef = useRef<string | null>(null);
   const fetchNextQuestionRef = useRef(fetchNextQuestion);
 
@@ -68,7 +74,7 @@ function AssessmentContent() {
         }
         return;
       }
-      
+
       const result = await fetchNextQuestionRef.current('easy');
       if (cancelled) return;
 
@@ -77,10 +83,7 @@ function AssessmentContent() {
         currentQuestionRef.current = result.data;
         stateRef.current = createInitialStaircaseState(MAX_ITEMS);
         setAsked((prev) => [...prev, result.data!.itemId]);
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', text: result.data!.question },
-        ]);
+        setMessages((prev) => [...prev, { role: 'assistant', text: result.data!.question }]);
         setError(null);
         return;
       }
@@ -108,25 +111,24 @@ function AssessmentContent() {
       const errorMessage = result.errorMessage || 'Failed to load question from AI interviewer';
       setError({ code: result.errorCode || 'Unknown', message: errorMessage });
       setRunning(false);
-      
+
       // Show user-friendly error message based on error type
       let userMessage = 'Unable to start assessment. ';
       if (result.errorCode === 'LLMConfigurationMissing') {
-        userMessage += process.env.NODE_ENV === 'development' 
-          ? 'AI service is not configured. Please check LLM_API_KEY and LLM_MODEL_PRIMARY environment variables.'
-          : 'AI service is temporarily unavailable. Please try again later.';
+        userMessage +=
+          process.env.NODE_ENV === 'development'
+            ? 'AI service is not configured. Please check LLM_API_KEY and LLM_MODEL_PRIMARY environment variables.'
+            : 'AI service is temporarily unavailable. Please try again later.';
       } else if (result.errorCode === 'NetworkError') {
         userMessage += 'Network connection issue. Please check your internet connection.';
       } else {
-        userMessage += process.env.NODE_ENV === 'development'
-          ? `Error: ${errorMessage}`
-          : 'AI interviewer could not be started. Please contact support.';
+        userMessage +=
+          process.env.NODE_ENV === 'development'
+            ? `Error: ${errorMessage}`
+            : 'AI interviewer could not be started. Please contact support.';
       }
-      
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', text: userMessage },
-      ]);
+
+      setMessages((prev) => [...prev, { role: 'assistant', text: userMessage }]);
     }
 
     void loadFirstQuestion();
@@ -142,7 +144,7 @@ function AssessmentContent() {
     const currentQuestion = currentQuestionRef.current;
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', text: answer }]);
-    
+
     // Call API to score and possibly get follow-up before selecting next
     let scoreTotal: number | undefined;
     let currentItemId: string | undefined;
@@ -194,7 +196,7 @@ function AssessmentContent() {
         }
       }
     }
-    
+
     // Determine difficulty hint based on score (staircase logic)
     lastScoreRef.current = scoreTotal ?? lastScoreRef.current ?? 6;
     let difficultyHint: 'easy' | 'medium' | 'hard' | undefined;
@@ -205,17 +207,14 @@ function AssessmentContent() {
     } else {
       difficultyHint = 'easy';
     }
-    
+
     // Fetch next question from API
     const result = await fetchNextQuestion(difficultyHint);
-    
+
     if (result.data) {
       currentQuestionRef.current = result.data;
       setAsked((prev) => [...prev, result.data!.itemId]);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', text: result.data!.question },
-      ]);
+      setMessages((prev) => [...prev, { role: 'assistant', text: result.data!.question }]);
     } else if (result.errorCode === 'AssessmentFinished') {
       // Assessment ended
       setRunning(false);
@@ -234,16 +233,23 @@ function AssessmentContent() {
         ]);
       } else {
         setRunning(false);
-        const errorMsg = process.env.NODE_ENV === 'development'
-          ? `Error generating next question: ${result.errorMessage || 'Unknown error'}`
-          : 'Unable to continue assessment. The session has been ended.';
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', text: errorMsg },
-        ]);
+        const errorMsg =
+          process.env.NODE_ENV === 'development'
+            ? `Error generating next question: ${result.errorMessage || 'Unknown error'}`
+            : 'Unable to continue assessment. The session has been ended.';
+        setMessages((prev) => [...prev, { role: 'assistant', text: errorMsg }]);
       }
     }
-  }, [input, running, loadingQuestion, fetchNextQuestion, assessmentId, sessionToken, netCtrlRef, asked]);
+  }, [
+    input,
+    running,
+    loadingQuestion,
+    fetchNextQuestion,
+    assessmentId,
+    sessionToken,
+    netCtrlRef,
+    asked,
+  ]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -255,13 +261,15 @@ function AssessmentContent() {
   return (
     <>
       {error && retryCount < 1 && (
-        <div style={{ 
-          padding: '16px', 
-          margin: '16px', 
-          backgroundColor: '#fee', 
-          border: '1px solid #fcc',
-          borderRadius: '8px'
-        }}>
+        <div
+          style={{
+            padding: '16px',
+            margin: '16px',
+            backgroundColor: '#fee',
+            border: '1px solid #fcc',
+            borderRadius: '8px',
+          }}
+        >
           <p style={{ margin: '0 0 12px 0', fontWeight: 'bold' }}>Assessment Error</p>
           <p style={{ margin: '0 0 12px 0' }}>{error.message}</p>
           <button
@@ -272,7 +280,7 @@ function AssessmentContent() {
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
             Retry
@@ -309,4 +317,3 @@ export default function AssessmentPage() {
     </ErrorBoundary>
   );
 }
-

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { apiUrl } from '../lib/api';
 import { fetchWithTimeout, isValidUUID } from '@shared/core';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+
+import { apiUrl } from '../lib/api';
 
 export default function HomePage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [emailInput, setEmailInput] = useState('');
   const [isHovering, setIsHovering] = useState(false);
   const [isCreating, setIsCreating] = useState(false);

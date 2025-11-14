@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Message, MessageAvatar, MessageContent } from './Message';
 import React from 'react';
+import { describe, expect, it } from 'vitest';
+
+import { Message, MessageAvatar, MessageContent } from './Message';
 
 describe('Message components', () => {
   it('renders user message with correct styling', () => {
@@ -9,9 +10,9 @@ describe('Message components', () => {
       <Message role="user">
         <MessageAvatar role="user" />
         <MessageContent role="user">Hello</MessageContent>
-      </Message>
+      </Message>,
     );
-    
+
     expect(container.querySelector('.flex-row-reverse')).toBeTruthy();
     expect(screen.getByText('Hello')).toBeTruthy();
   });
@@ -21,9 +22,9 @@ describe('Message components', () => {
       <Message role="assistant">
         <MessageAvatar role="assistant" />
         <MessageContent role="assistant">Hi there</MessageContent>
-      </Message>
+      </Message>,
     );
-    
+
     expect(container.querySelector('.flex-row')).toBeTruthy();
     expect(screen.getByText('Hi there')).toBeTruthy();
   });
@@ -31,7 +32,7 @@ describe('Message components', () => {
   it('renders MessageAvatar with correct role indicators', () => {
     const { rerender } = render(<MessageAvatar role="user" />);
     expect(screen.getByText('U')).toBeTruthy();
-    
+
     rerender(<MessageAvatar role="assistant" />);
     expect(screen.getByText('AI')).toBeTruthy();
   });
@@ -42,11 +43,9 @@ describe('Message components', () => {
         <MessageContent role="user">
           This is a long message that should wrap properly
         </MessageContent>
-      </Message>
+      </Message>,
     );
-    
+
     expect(screen.getByText(/This is a long message/)).toBeTruthy();
   });
 });
-
-
