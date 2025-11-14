@@ -27,7 +27,9 @@ describe('server dev route gating', () => {
       url: '/dev/test-llm',
       headers: {
         Origin: 'http://localhost:3000',
+        'Content-Type': 'application/json',
       },
+      payload: {},
     });
     if (res.statusCode !== 404) {
       // eslint-disable-next-line no-console

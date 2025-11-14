@@ -13,6 +13,10 @@ vi.mock('../db', () => {
       if (sql.includes('insert into audit_logs')) {
         return Promise.resolve({ rows: [] });
       }
+      if (sql.includes('select job_id from assessments')) {
+        // Return a job_id to indicate assessment exists
+        return Promise.resolve({ rows: [{ job_id: 'test-job' }] });
+      }
       return Promise.resolve({ rows: [] });
     }),
   };
@@ -42,7 +46,7 @@ describe('report csv', () => {
       url: '/report/csv',
       query: { assessmentId },
       headers: {
-        'X-Dev-Mode': 'true',
+        'x-dev-mode': 'true',
       },
     });
     if (res.statusCode !== 200) {

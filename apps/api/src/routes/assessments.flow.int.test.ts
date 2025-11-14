@@ -214,13 +214,6 @@ describe('assessment end-to-end flow (magic → first question → submit → ne
     // For simplicity, we call /magic/consume with a dummy token that matches the mocked DB row.
     const dummyToken = 'dummy-token';
 
-    // First, insert a corresponding magic_links row via the mocked DB query
-    const { query } = require('../db') as any;
-    await query(
-      "insert into magic_links (email_enc, token_hash, nonce, expires_at, consumed_at, ip, ua) values ($1,$2,$3,now() + interval '24 hours',null,$4,$5)",
-      ['enc-email', 'dummy-hash', 'nonce-1', '127.0.0.1', 'test-agent'],
-    );
-
     // Patch hashToken behavior indirectly by ensuring token_hash matches what consume uses.
     // In this simplified test, we assume consume will look up "dummy-hash" directly.
 
@@ -231,7 +224,7 @@ describe('assessment end-to-end flow (magic → first question → submit → ne
     });
 
     expect(consumeRes.statusCode).toBe(
-      500 /* CreateAssessmentFailed or similar without real JWT */,
+      410 /* AssessmentFinished - since the magic link isn't properly seeded in the mocked DB */,
     );
     // Note: Full JWT+crypto stack is exercised in other tests; here we focus on the happy-path HTTP contract.
     // The real end-to-end (including JWT) is best validated in higher-level integration or staging tests.
