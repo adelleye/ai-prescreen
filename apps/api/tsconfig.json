@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../../packages/shared/src/*"]
+    },
+    "outDir": "dist",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src", "api", "scripts"]
+}
+
+

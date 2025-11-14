@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+.next
+.vercel
+out
+coverage
+*.tsbuildinfo
+*.log
+*.pid
+
+# Env
+.env*
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Documentation files (exclude all .md and .txt except README.md)
+*.md
+*.txt
+!/README.md
+

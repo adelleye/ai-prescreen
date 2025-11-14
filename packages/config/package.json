@@ -1,0 +1,16 @@
+{
+  "name": "@config/root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared configuration for ESLint, TS, Vitest, Playwright",
+  "type": "module",
+  "exports": {
+    "./eslint/base": "./eslint/base.cjs",
+    "./tsconfig/base": "./tsconfig/base.json",
+    "./vitest/base": "./vitest/base.ts",
+    "./playwright/base": "./playwright/base.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0"
+  }
+}

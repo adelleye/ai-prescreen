@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.next
+.turbo
+.vercel
+coverage
+web-dev.log
+web-dev.pid
+
+

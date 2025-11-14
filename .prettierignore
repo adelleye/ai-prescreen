@@ -1,0 +1,9 @@
+dist
+.next
+coverage
+**/*.svg
+**/*.png
+**/*.jpg
+**/*.pdf
+
+
