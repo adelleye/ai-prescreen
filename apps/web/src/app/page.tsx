@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiUrl } from '../lib/api';
+import { fetchWithTimeout, isValidUUID } from '@shared/core';
 
 export default function HomePage() {
   const [emailInput, setEmailInput] = useState('');
   const [isHovering, setIsHovering] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const router = useRouter();
 
   return (
     <div
@@ -146,7 +151,8 @@ export default function HomePage() {
               animation: 'fade-in 0.6s ease-out 0.3s both',
             }}
           >
-            Adaptive AI pre-screening that identifies top talent in about 15 minutes. Fast, fair, and transparent.
+            Adaptive AI pre-screening that identifies top talent in about 15 minutes. Fast, fair,
+            and transparent.
           </p>
 
           {/* Feature bullets */}
@@ -204,36 +210,67 @@ export default function HomePage() {
               animation: 'fade-in 0.6s ease-out 0.5s both',
             }}
           >
-            <a
-              href="/assessment"
-              style={{ textDecoration: 'none' }}
-            >
-              <button
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
-                style={{
-                  padding: '14px 40px',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  background: isHovering
+            <button
+              onClick={async () => {
+                if (isCreating) return;
+                setIsCreating(true);
+                try {
+                  // In dev mode, create assessment first, then navigate with UUID
+                  if (process.env.NODE_ENV === 'development') {
+                    const res = await fetchWithTimeout(apiUrl('/dev/test-assessment'), {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ jobId: 'finance-ap' }),
+                      timeoutMs: 8000,
+                    });
+                    if (res.ok) {
+                      const data = await res.json().catch(() => null);
+                      if (data?.ok && data.assessmentId && isValidUUID(data.assessmentId)) {
+                        // Store in sessionStorage BEFORE navigating so the hook can find it
+                        sessionStorage.setItem('assessmentId', data.assessmentId);
+                        // Navigate with the UUID in the URL
+                        router.push(`/assessment?devAssessmentId=${data.assessmentId}`);
+                        return;
+                      }
+                    }
+                  }
+                  // Fallback: navigate without UUID (will be created by hook)
+                  router.push('/assessment');
+                } catch (error) {
+                  // On error, still navigate (hook will handle creation)
+                  router.push('/assessment');
+                } finally {
+                  setIsCreating(false);
+                }
+              }}
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+              disabled={isCreating}
+              style={{
+                padding: '14px 40px',
+                fontSize: '16px',
+                fontWeight: 600,
+                color: '#ffffff',
+                background:
+                  isHovering && !isCreating
                     ? 'linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%)'
                     : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  boxShadow: isHovering
+                border: 'none',
+                borderRadius: '12px',
+                cursor: isCreating ? 'wait' : 'pointer',
+                boxShadow:
+                  isHovering && !isCreating
                     ? '0 20px 25px -5px rgba(37, 99, 235, 0.3)'
                     : '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
-                  transition: 'all 0.3s ease',
-                  transform: isHovering ? 'translateY(-2px)' : 'translateY(0)',
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  letterSpacing: '0.02em',
-                }}
-              >
-                Start Assessment
-              </button>
-            </a>
+                transition: 'all 0.3s ease',
+                transform: isHovering && !isCreating ? 'translateY(-2px)' : 'translateY(0)',
+                fontFamily: "'IBM Plex Sans', sans-serif",
+                letterSpacing: '0.02em',
+                opacity: isCreating ? 0.7 : 1,
+              }}
+            >
+              {isCreating ? 'Starting...' : 'Start Assessment'}
+            </button>
           </div>
 
           {/* Footer text */}
@@ -281,4 +318,3 @@ export default function HomePage() {
     </div>
   );
 }
-

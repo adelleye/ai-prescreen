@@ -25,9 +25,11 @@ export function useAssessmentState() {
     }
     
     // Dev mode: use assessmentId directly (no session required for dev)
+    // Prioritize URL parameter over cached value to ensure we use the correct UUID
     if (devAssessmentId) {
       // Validate devAssessmentId is a valid UUID
       if (isValidUUID(devAssessmentId)) {
+        // Always use the UUID from URL, even if different from cached
         sessionStorage.setItem('assessmentId', devAssessmentId);
         setAssessmentId(devAssessmentId);
         // Dev mode doesn't use sessions, so we don't set sessionToken
