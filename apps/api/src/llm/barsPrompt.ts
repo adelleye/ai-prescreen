@@ -224,135 +224,62 @@ export function buildQuestionPrompt(params: {
     | 'inconsistency';
   scenario?: string;
 }): string {
-  const {
-    jobContext,
-    applicantContext,
-    history,
-    difficulty,
-    timeRemaining,
-    itemNumber,
-    maxItems,
-    probeLayer,
-    scenario,
-  } = params;
+  const { jobContext, applicantContext, history, difficulty, probeLayer, scenario } = params;
 
   const lines: string[] = [
-    `You are a tough, job-specific interviewer conducting a pre-screening assessment.`,
-    `Generate ONE interview question that is realistic, contextual, and tests the candidate's competence.`,
-    `Interview is CONVERSATIONAL, not mechanical. Questions adapt based on answer quality and depth, not linear progression.`,
+    `Output ONLY valid JSON: {"question": "...", "difficulty": "easy|medium|hard"}`,
     ``,
-    `Rules:`,
-    `- Output ONLY a JSON object with this exact shape: {"question": "your question here", "difficulty": "easy|medium|hard"}`,
-    `- Question must be ≤2 sentences`,
-    `- Question should be specific to the job role and candidate's background`,
-    `- Make it challenging but fair`,
-    `- Anchor follow-ups to exact words the candidate said—never generic prompts`,
-    `- Ground each question in: job requirements, resume, application answers, or previous responses`,
-    `- NEVER teach or hint: let candidate think through problems fully`,
-    `- NEVER use softening language ("It seems like...", "Can you elaborate?", "Help me understand...")`,
-    `- Turn answers into stress tests: scalability, constraints, failure modes, edge cases`,
-    `- If difficulty is specified, match that level; otherwise choose appropriately`,
-    `- No markdown, no preface, no explanation — ONLY the JSON object`,
-    ``,
+    `Context:`,
+    `Job: ${jobContext}`,
+    `Candidate: ${applicantContext}`,
   ];
 
-  // Adaptive probing strategy - DIRECT, UNFORGIVING, TECHNICAL
+  // Add scenario if provided - this is now the ONLY "instruction" after context
+  if (scenario) {
+    lines.push(`Scenario: ${scenario}`);
+  }
+
+  // Build probing guidance implicitly - DON'T name the layer
   if (probeLayer) {
-    lines.push(`ADAPTIVE PROBING LAYER: ${probeLayer}`);
     switch (probeLayer) {
       case 'verify':
-        lines.push(
-          `- Answer was vague or hand-wavy. Push back: Demand specifics. "Walk me through exactly what you did." "What was the actual error?" "Show me the code pattern." Don't accept abstractions.`,
-        );
+        lines.push(`Focus: Demand specifics on vague claims. Push for concrete details.`);
         break;
       case 'apply':
-        lines.push(
-          `- Answer worked in one context. Test generalization: "That works at 100K requests/sec? What about 10M?" "Your approach works with one database—what breaks with three?" Expose the seams.`,
-        );
+        lines.push(`Focus: Test if their solution scales. Expose edge cases and seams.`);
         break;
       case 'why':
-        lines.push(
-          `- Answer shows they know HOW. Now test the reasoning: "Why that instead of [alternative]?" "What's the actual tradeoff?" "What's the cost of that choice?" Push for architectural thinking, not recipe-following.`,
-        );
+        lines.push(`Focus: Challenge their reasoning. Probe architectural thinking.`);
         break;
       case 'constraint':
-        lines.push(
-          `- They've solved the ideal case. Break it: "What if you had 1/10th the memory?" "What if latency became critical?" "What if the constraint was reversed?" Test flexibility, not memorization.`,
-        );
+        lines.push(`Focus: Break their approach. What fails under different constraints?`);
         break;
       case 'flip':
-        lines.push(
-          `- Answer was good. Now flip the problem: "You just described how to optimize for speed. Now do the opposite—optimize for memory at any speed cost. How does your architecture change?" "You built this for high concurrency. Redesign it for single-threaded. What breaks?" Test flexibility and inverse thinking.`,
-        );
+        lines.push(`Focus: Reverse the problem. How does their approach change fundamentally?`);
         break;
       case 'failure':
-        lines.push(
-          `- Answer was strong. Expose the cracks: "Walk me through exactly when this approach fails." "What's the breaking point?" "At what scale does this stop working?" "What's one scenario you can't handle?" Don't let them hide behind "it should work." Demand failure modes.`,
-        );
+        lines.push(`Focus: Surface failure modes. When does this approach break?`);
         break;
       case 'tradeoff':
-        lines.push(
-          `- Answer was very strong. Force the real cost: "What did you sacrifice to get those gains?" "What's slower now that you optimized for X?" "What's the hidden cost?" "Who pays the price for your choice?" Push past the wins to expose what they left on the table.`,
-        );
+        lines.push(`Focus: Expose hidden costs. What did they sacrifice?`);
         break;
       case 'inconsistency':
-        lines.push(
-          `- Candidate contradicts themselves. Call it directly: "Wait—earlier you said X guarantees Y. Now you're saying Z sometimes happens. These don't line up. Walk me through this." Don't soft-pedal. They either know their architecture or they don't.`,
-        );
+        lines.push(`Focus: Resolve contradictions. What doesn't add up?`);
         break;
     }
-    lines.push(``);
   }
 
-  if (scenario) {
-    lines.push(`SCENARIO CONTEXT: ${scenario}`);
-    lines.push(
-      `Ground the next question in this scenario. Reference the specifics they've mentioned.`,
-    );
-    lines.push(``);
-  }
-
-  // Time-aware strategy (SILENT—never mentioned to candidate)
-  if (timeRemaining !== undefined && timeRemaining !== null) {
-    lines.push(`[INTERNAL TIME-AWARE STRATEGY (invisible to candidate)]`);
-    if (timeRemaining > 5) {
-      lines.push(
-        `- Time remaining: ${timeRemaining} minutes (plenty of time). Ask moderately complex, multi-part questions. Deep follow-ups will be allowed.`,
-      );
-    } else if (timeRemaining > 2) {
-      lines.push(
-        `- Time remaining: ${timeRemaining} minutes (limited time). Focus on UNCOVERED CRITICAL competencies. Keep questions focused and direct.`,
-      );
-    } else {
-      lines.push(
-        `- Time remaining: ${timeRemaining} minutes (very limited time). Ask ONE critical remaining question if any major competency is untested.`,
-      );
-    }
-    lines.push(``);
-  }
-
-  if (itemNumber && maxItems) {
-    lines.push(`Progress: Question ${itemNumber} of ~${maxItems}`);
-  }
-
-  lines.push(``);
-  lines.push(`JobContext:\n${jobContext}`);
-  lines.push(``);
-  lines.push(`ApplicantContext:\n${applicantContext}`);
-
-  if (difficulty) {
-    lines.push(`TargetDifficulty: ${difficulty}`);
-  }
-
+  // Add conversation history - this anchors the next question in actual context
   if (history.length > 0) {
     lines.push(``);
-    lines.push(`Previous conversation:`);
-    for (const h of history.slice(-3)) {
+    lines.push(`Recent conversation:`);
+    for (const h of history.slice(-2)) {
       lines.push(`Q: ${h.question}`);
       lines.push(`A: ${h.answer}`);
     }
-    lines.push(`Generate the next question that builds on this conversation and assesses job fit.`);
   }
+
+  lines.push(`Difficulty: ${difficulty || 'auto'}`);
 
   return lines.join('\n');
 }
