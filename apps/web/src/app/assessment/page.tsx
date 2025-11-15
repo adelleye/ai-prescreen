@@ -1,6 +1,6 @@
 'use client';
 
-import { createInitialStaircaseState, fetchWithTimeout } from '@shared/core';
+import { createInitialStaircaseState, fetchWithTimeout, MAX_ASSESSMENT_ITEMS } from '@shared/core';
 import { LiveRegion } from '@ui/kit';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 
@@ -13,7 +13,7 @@ import { useAssessmentState } from './hooks/useAssessmentState';
 import { useQuestionFetcher, type QuestionData } from './hooks/useQuestionFetcher';
 import { useTimer } from './hooks/useTimer';
 
-const MAX_ITEMS = 18;
+const MAX_ITEMS = MAX_ASSESSMENT_ITEMS;
 
 function AssessmentContent() {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
