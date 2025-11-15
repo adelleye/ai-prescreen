@@ -25,6 +25,9 @@ function AssessmentContent() {
   const lastScoreRef = useRef<number | undefined>(undefined);
   const currentQuestionRef = useRef<QuestionData | null>(null);
   const stateRef = useRef(createInitialStaircaseState(MAX_ITEMS));
+  // Track follow-ups per question to enable multi-turn conversation
+  const followUpsCountRef = useRef<number>(0);
+  const MAX_FOLLOW_UPS_PER_ITEM = 2;
 
   const { assessmentId, sessionToken, netCtrlRef } = useAssessmentState();
   const { fetchNextQuestion, loadingQuestion } = useQuestionFetcher(
@@ -145,8 +148,9 @@ function AssessmentContent() {
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', text: answer }]);
 
-    // Call API to score and possibly get follow-up before selecting next
+    // Call API to score and get follow-up
     let scoreTotal: number | undefined;
+    let followUp: string | undefined;
     let currentItemId: string | undefined;
     if (assessmentId) {
       try {
@@ -167,9 +171,9 @@ function AssessmentContent() {
             assessmentId,
             itemId: currentItemId ?? 'unknown',
             answerText: answer,
-            questionText: currentQuestion?.question, // Include question text for storage
+            questionText: currentQuestion?.question,
             clientTs: new Date().toISOString(),
-            signals: [], // signals are also sent via /api/signals beacons
+            signals: [],
           }),
           timeoutMs: 12000,
           signal: netCtrlRef.current.signal,
@@ -181,10 +185,7 @@ function AssessmentContent() {
         }
         if (res.ok) {
           const data = await res.json().catch(() => null);
-          if (data?.followUp) {
-            setMessages((prev) => [...prev, { role: 'assistant', text: String(data.followUp) }]);
-            return;
-          }
+          followUp = data?.followUp;
           scoreTotal = Number(data?.score?.total);
           if (!Number.isFinite(scoreTotal)) scoreTotal = undefined;
         }
@@ -197,7 +198,17 @@ function AssessmentContent() {
       }
     }
 
-    // Determine difficulty hint based on score (staircase logic)
+    // Handle multi-turn conversation: show follow-up and wait for answer
+    if (followUp && followUpsCountRef.current < MAX_FOLLOW_UPS_PER_ITEM) {
+      setMessages((prev) => [...prev, { role: 'assistant', text: followUp }]);
+      followUpsCountRef.current += 1;
+      return; // Wait for candidate to answer the follow-up
+    }
+
+    // Enough follow-ups or no follow-up: move to next question
+    followUpsCountRef.current = 0;
+
+    // Update score for staircase
     lastScoreRef.current = scoreTotal ?? lastScoreRef.current ?? 6;
     let difficultyHint: 'easy' | 'medium' | 'hard' | undefined;
     if (lastScoreRef.current >= 7) {

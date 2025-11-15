@@ -12,9 +12,10 @@ describe('BARS prompt & parser', () => {
 
   it('parses JSON inside code fences', () => {
     const text =
-      '```json\n{"criteria":{"policyProcedure":0,"decisionQuality":1,"evidenceSpecificity":2}}\n```';
+      '```json\n{"criteria":{"policyProcedure":0,"decisionQuality":1,"evidenceSpecificity":2},"followUp":"Can you elaborate?"}\n```';
     const res = parseBarsFromModelText(text);
     expect(res.criteria.evidenceSpecificity).toBe(2);
+    expect(res.followUp).toBe('Can you elaborate?');
   });
 
   it('rejects out-of-range values', () => {

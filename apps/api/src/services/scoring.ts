@@ -5,7 +5,7 @@ import type { LlmAdapter } from '../llm/adapter';
 export type GradeOutcome = {
   criteria: { policyProcedure: number; decisionQuality: number; evidenceSpecificity: number };
   total: number;
-  followUp?: string;
+  followUp: string;
   kappa?: number;
 };
 
@@ -85,12 +85,12 @@ export function createScoringService(adapter: LlmAdapter) {
         evidenceSpecificity: chosen.criteria.evidenceSpecificity as 0 | 1 | 2 | 3,
       });
 
-      const base: GradeOutcome = {
+      return {
         criteria: score.criteria,
         total: score.total,
+        followUp: chosen.followUp,
         kappa: agreement,
       };
-      return chosen.followUp ? { ...base, followUp: chosen.followUp } : base;
     },
   };
 }

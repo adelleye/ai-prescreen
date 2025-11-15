@@ -91,7 +91,14 @@ export class OpenAIAdapter implements LlmAdapter {
     jobContext?: string;
     applicantContext?: string;
     history?: Array<{ question: string; answer: string }>;
-  }) {
+  }): Promise<{
+    criteria: {
+      policyProcedure: 0 | 1 | 2 | 3;
+      decisionQuality: 0 | 1 | 2 | 3;
+      evidenceSpecificity: 0 | 1 | 2 | 3;
+    };
+    followUp: string;
+  }> {
     if (!env.LLM_API_KEY || !env.LLM_MODEL_PRIMARY) {
       throw new LLMConfigurationError();
     }
@@ -135,8 +142,12 @@ export class OpenAIAdapter implements LlmAdapter {
         seed: input.seed,
       });
       const parsed = parseBarsFromModelText(text);
-      if (cacheEnabled) setInCache(cacheKeyBase, parsed, ttlMs);
-      return parsed;
+      const result = {
+        ...parsed,
+        followUp: parsed.followUp || 'Tell me more about your answer.',
+      };
+      if (cacheEnabled) setInCache(cacheKeyBase, result, ttlMs);
+      return result;
     } catch (err) {
       if (!env.LLM_MODEL_FALLBACK) throw err;
       const text = await callChatCompletions({
@@ -148,11 +159,15 @@ export class OpenAIAdapter implements LlmAdapter {
         seed: input.seed + 1000,
       });
       const parsed = parseBarsFromModelText(text);
+      const result = {
+        ...parsed,
+        followUp: parsed.followUp || 'Tell me more about your answer.',
+      };
       if (cacheEnabled) {
         const fbKey = cacheKeyBase.replace(`|${primaryModel}|`, `|${env.LLM_MODEL_FALLBACK}|`);
-        setInCache(fbKey, parsed, ttlMs);
+        setInCache(fbKey, result, ttlMs);
       }
-      return parsed;
+      return result;
     }
   }
 
@@ -249,7 +264,7 @@ type CachedValue = {
       decisionQuality: 0 | 1 | 2 | 3;
       evidenceSpecificity: 0 | 1 | 2 | 3;
     };
-    followUp?: string;
+    followUp: string;
   };
   expires: number;
 };

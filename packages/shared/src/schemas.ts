@@ -2,26 +2,26 @@ import { z } from 'zod';
 
 export const IssueMagicLinkRequest = z.object({
   email: z.string().email().max(254),
-  jobId: z.string().min(1).max(50)
+  jobId: z.string().min(1).max(50),
 });
 export type IssueMagicLinkRequest = z.infer<typeof IssueMagicLinkRequest>;
 
 export const IssueMagicLinkResponse = z.object({
   ok: z.literal(true),
   magicLinkId: z.string(),
-  email: z.string().email()
+  email: z.string().email(),
 });
 export type IssueMagicLinkResponse = z.infer<typeof IssueMagicLinkResponse>;
 
 export const ConsumeMagicLinkRequest = z.object({
-  token: z.string().min(10)
+  token: z.string().min(10),
 });
 export type ConsumeMagicLinkRequest = z.infer<typeof ConsumeMagicLinkRequest>;
 
 export const ConsumeMagicLinkResponse = z.object({
   ok: z.literal(true),
   assessmentId: z.string().uuid(),
-  sessionToken: z.string().min(1)
+  sessionToken: z.string().min(1),
 });
 export type ConsumeMagicLinkResponse = z.infer<typeof ConsumeMagicLinkResponse>;
 
@@ -36,10 +36,10 @@ export const SubmitAnswerRequest = z.object({
       z.object({
         type: z.enum(['visibilitychange', 'paste', 'blur', 'focus', 'latencyOutlier']),
         at: z.string().datetime(),
-        meta: z.record(z.any()).optional()
-      })
+        meta: z.record(z.any()).optional(),
+      }),
     )
-    .default([])
+    .default([]),
 });
 export type SubmitAnswerRequest = z.infer<typeof SubmitAnswerRequest>;
 
@@ -50,10 +50,10 @@ export const SubmitAnswerResponse = z.object({
     criteria: z.object({
       policyProcedure: z.number(),
       decisionQuality: z.number(),
-      evidenceSpecificity: z.number()
-    })
+      evidenceSpecificity: z.number(),
+    }),
   }),
-  followUp: z.string().optional()
+  followUp: z.string(),
 });
 export type SubmitAnswerResponse = z.infer<typeof SubmitAnswerResponse>;
 
@@ -62,18 +62,18 @@ export const IntegrityEventSchema = z.object({
   type: z.enum(['visibilitychange', 'paste', 'blur', 'focus', 'latencyOutlier']),
   at: z.string().datetime().optional(),
   itemId: z.string().optional(),
-  meta: z.record(z.any()).optional()
+  meta: z.record(z.any()).optional(),
 });
 export type IntegrityEventInput = z.infer<typeof IntegrityEventSchema>;
 
 export const DevTestAssessmentRequest = z.object({
-  jobId: z.string().min(1).optional()
+  jobId: z.string().min(1).optional(),
 });
 export type DevTestAssessmentRequest = z.infer<typeof DevTestAssessmentRequest>;
 
 export const NextQuestionRequest = z.object({
   assessmentId: z.string().uuid(),
-  difficulty: z.enum(['easy', 'medium', 'hard']).optional()
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
 });
 export type NextQuestionRequest = z.infer<typeof NextQuestionRequest>;
 
@@ -83,5 +83,3 @@ export type NextQuestionRequest = z.infer<typeof NextQuestionRequest>;
 export function isValidUUID(str: string): boolean {
   return z.string().uuid().safeParse(str).success;
 }
-
-

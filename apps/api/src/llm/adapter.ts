@@ -14,7 +14,7 @@ export interface LlmAdapter {
       decisionQuality: 0 | 1 | 2 | 3;
       evidenceSpecificity: 0 | 1 | 2 | 3;
     };
-    followUp?: string;
+    followUp: string;
   }>;
 
   generateQuestion(input: {
@@ -35,5 +35,3 @@ export type BarsCriteria = {
   decisionQuality: 0 | 1 | 2 | 3;
   evidenceSpecificity: 0 | 1 | 2 | 3;
 };
-
-

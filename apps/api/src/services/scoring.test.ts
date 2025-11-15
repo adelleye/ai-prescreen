@@ -11,11 +11,13 @@ describe('scoring service', () => {
         if (seed === 1) {
           return {
             criteria: { policyProcedure: 1, decisionQuality: 1, evidenceSpecificity: 1 },
+            followUp: 'Tell me more.',
           };
         }
         if (seed === 2) {
           return {
             criteria: { policyProcedure: 1, decisionQuality: 1, evidenceSpecificity: 0 },
+            followUp: 'Can you elaborate?',
           };
         }
         // tie-breaker
@@ -38,7 +40,7 @@ describe('scoring service', () => {
     expect(res.total).toBe(3);
     // kappa should be 2/3 (~0.666) which is < 0.67, so tie-breaker path triggers
     expect(res.kappa).toBeLessThan(0.67);
-    // followUp borrowed from tie-breaker when chosen lacked one
-    expect(res.followUp).toBe('Be specific.');
+    // followUp from chosen result (pass 1, which is closest to tie-breaker)
+    expect(res.followUp).toBe('Tell me more.');
   });
 });
