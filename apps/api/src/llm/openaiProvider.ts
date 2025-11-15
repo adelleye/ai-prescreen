@@ -3,12 +3,14 @@ import { createHash } from 'crypto';
 import { z } from 'zod';
 
 import { env } from '../env';
+import { parseResume } from '../services/resumeParser';
 
 import type { LlmAdapter } from './adapter';
 import {
   buildBarsPrompt,
   parseBarsFromModelText,
   buildQuestionPrompt,
+  buildFirstQuestionPrompt,
   parseQuestionFromModelText,
 } from './barsPrompt';
 import { LLMConfigurationError, LLMHttpError, LLMResponseError } from './errors';
@@ -25,14 +27,20 @@ async function callChatCompletions(opts: {
   messages: ChatMessage[];
   timeoutMs: number;
   seed?: number;
+  temperature?: number;
 }) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), opts.timeoutMs);
   try {
+    // IMPORTANT: Question generation MUST remain non-deterministic for flexibility
+    // and variation. Grading MUST remain deterministic for BARS scoring reliability.
+    // Default temperature is 0 (deterministic) for all operations unless explicitly
+    // overridden by the caller for question generation (temperature: 0.7).
+    const temperature = opts.temperature ?? 0;
     const body: Record<string, unknown> = {
       model: opts.model,
       messages: opts.messages,
-      temperature: 0,
+      temperature,
       top_p: 1,
       // Some providers support a deterministic seed; ignore if unsupported
       seed: opts.seed,
@@ -91,6 +99,7 @@ export class OpenAIAdapter implements LlmAdapter {
     jobContext?: string;
     applicantContext?: string;
     history?: Array<{ question: string; answer: string }>;
+    timeRemaining?: number;
   }): Promise<{
     criteria: {
       policyProcedure: 0 | 1 | 2 | 3;
@@ -118,6 +127,7 @@ export class OpenAIAdapter implements LlmAdapter {
           ...(input.jobContext && { jobContext: input.jobContext }),
           ...(input.applicantContext && { applicantContext: input.applicantContext }),
           ...(input.history && { history: input.history }),
+          ...(input.timeRemaining && { timeRemaining: input.timeRemaining }),
         }),
       },
     ];
@@ -177,6 +187,12 @@ export class OpenAIAdapter implements LlmAdapter {
     history: Array<{ question: string; answer: string }>;
     difficulty?: 'easy' | 'medium' | 'hard';
     timeoutMs?: number;
+    timeRemaining?: number;
+    itemNumber?: number;
+    maxItems?: number;
+    isFirstQuestion?: boolean;
+    candidateName?: string | null;
+    resumeText?: string | null;
   }): Promise<{
     question: string;
     itemId: string;
@@ -186,6 +202,41 @@ export class OpenAIAdapter implements LlmAdapter {
       throw new LLMConfigurationError();
     }
     const timeoutMs = input.timeoutMs ?? Number(env.LLM_TIMEOUT_MS ?? 12000);
+
+    // Parse resume if available to ground questions in candidate's background
+    const resumeAnalysis = input.resumeText ? parseResume(input.resumeText) : undefined;
+
+    // Use first question prompt if this is the first question, otherwise use standard prompt
+    const firstQuestionParams: Parameters<typeof buildFirstQuestionPrompt>[0] = {
+      jobContext: input.jobContext,
+      applicantContext: input.applicantContext,
+      candidateName: input.candidateName ?? undefined,
+    };
+
+    if (resumeAnalysis) {
+      firstQuestionParams.resumeAnalysis = {
+        projects: resumeAnalysis.projects,
+        technologies: resumeAnalysis.technologies,
+        inconsistencies: resumeAnalysis.inconsistencies,
+        redFlags: resumeAnalysis.redFlags,
+        careerPattern: resumeAnalysis.careerPattern,
+        totalYearsExperience: resumeAnalysis.totalYearsExperience,
+        voiceAnalysis: resumeAnalysis.voiceAnalysis,
+      };
+    }
+
+    const promptContent = input.isFirstQuestion
+      ? buildFirstQuestionPrompt(firstQuestionParams)
+      : buildQuestionPrompt({
+          jobContext: input.jobContext,
+          applicantContext: input.applicantContext,
+          history: input.history,
+          ...(input.difficulty && { difficulty: input.difficulty }),
+          ...(input.timeRemaining && { timeRemaining: input.timeRemaining }),
+          ...(input.itemNumber && { itemNumber: input.itemNumber }),
+          ...(input.maxItems && { maxItems: input.maxItems }),
+        });
+
     const messages: ChatMessage[] = [
       {
         role: 'system',
@@ -194,17 +245,16 @@ export class OpenAIAdapter implements LlmAdapter {
       },
       {
         role: 'user',
-        content: buildQuestionPrompt({
-          jobContext: input.jobContext,
-          applicantContext: input.applicantContext,
-          history: input.history,
-          ...(input.difficulty && { difficulty: input.difficulty }),
-        }),
+        content: promptContent,
       },
     ];
     const baseUrl = env.LLM_BASE_URL || 'https://api.openai.com';
 
     async function generateWithModel(model: string, seed: number) {
+      // IMPORTANT: Question generation MUST remain non-deterministic for flexibility
+      // and variation. Grading MUST remain deterministic for BARS scoring reliability.
+      // Temperature 0.7 enables strategy variation (5 opening approaches) and
+      // contextual follow-ups without breaking JSON validation.
       const text = await callChatCompletions({
         baseUrl,
         apiKey: env.LLM_API_KEY,
@@ -212,6 +262,7 @@ export class OpenAIAdapter implements LlmAdapter {
         messages,
         timeoutMs,
         seed,
+        temperature: 0.7, // Non-deterministic sampling for question variation
       });
       const parsed = parseQuestionFromModelText(text);
       const itemId = `q_${createHash('sha1')
