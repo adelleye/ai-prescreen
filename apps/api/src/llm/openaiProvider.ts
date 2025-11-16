@@ -47,8 +47,13 @@ async function callChatCompletions(opts: {
       // If supported, this nudges JSON outputs; ignored otherwise.
       response_format: { type: 'json_object' },
     };
-    // Use max_completion_tokens for newer models, max_tokens for older ones
-    if (opts.model.includes('gpt-4o') || opts.model.includes('o1')) {
+    // Use max_completion_tokens for newer models, max_tokens for legacy completions
+    const isNewStyleModel =
+      opts.model.includes('gpt-4') ||
+      opts.model.includes('gpt-5') ||
+      opts.model.includes('gpt-4o') ||
+      opts.model.includes('o1');
+    if (isNewStyleModel) {
       body.max_completion_tokens = 256;
     } else {
       body.max_tokens = 256;
@@ -159,7 +164,9 @@ export class OpenAIAdapter implements LlmAdapter {
       const parsed = parseBarsFromModelText(text);
       const result = {
         ...parsed,
-        followUp: parsed.followUp || 'Tell me more about your answer.',
+        followUp:
+          parsed.followUp ??
+          'Be specific: name the bottleneck, the metric you watched, and the exact action you took to fix it.',
       };
       if (cacheEnabled) setInCache(cacheKeyBase, result, ttlMs);
       return result;
@@ -174,15 +181,23 @@ export class OpenAIAdapter implements LlmAdapter {
         seed: input.seed + 1000,
       });
       const parsed = parseBarsFromModelText(text);
-      const result = {
-        ...parsed,
-        followUp: parsed.followUp || 'Tell me more about your answer.',
-      };
       if (cacheEnabled) {
         const fbKey = cacheKeyBase.replace(`|${primaryModel}|`, `|${env.LLM_MODEL_FALLBACK}|`);
+        const result = {
+          ...parsed,
+          followUp:
+            parsed.followUp ??
+            'Be specific: name the bottleneck, the metric you watched, and the exact action you took to fix it.',
+        };
         setInCache(fbKey, result, ttlMs);
+        return result;
       }
-      return result;
+      return {
+        ...parsed,
+        followUp:
+          parsed.followUp ??
+          'Be specific: name the bottleneck, the metric you watched, and the exact action you took to fix it.',
+      };
     }
   }
 
@@ -248,19 +263,8 @@ export class OpenAIAdapter implements LlmAdapter {
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: `You are a senior recruiter conducting a tough, technical pre-screen interview like a human would.
-Your job: Generate ONE interview question that is:
-- Direct and unforgiving. No softening language ("It seems like", "Can you elaborate?").
-- Grounded in the candidate's actual background and the job requirements.
-- Adaptive to conversation history—build on what they've said, don't repeat.
-- Designed to expose depth: scalability, constraints, failure modes, tradeoffs, architectural thinking.
-- Concise (≤2 sentences). Natural tone, not mechanical.
-
-You anchor everything to what the candidate actually said. You turn their answers into stress tests.
-You demand specifics. You challenge vague claims. You expose where their approach breaks.
-You are not an HR robot. You think like an engineer interviewing another engineer.
-
-Output ONLY valid JSON (no preamble, no explanation, no markdown).`,
+        content:
+          'You are an interviewer for any kind of role. Your job is to test (1) real competence, (2) evidence from real situations, and (3) ownership/agency. Use the job description, the candidate background, and recent answers to ask ONE concise question at a time. Avoid generic questions. Output only JSON {"question": string, "difficulty": "easy"|"medium"|"hard"}.',
       },
       {
         role: 'user',
@@ -272,8 +276,7 @@ Output ONLY valid JSON (no preamble, no explanation, no markdown).`,
     async function generateWithModel(model: string, seed: number) {
       // IMPORTANT: Question generation MUST remain non-deterministic for flexibility
       // and variation. Grading MUST remain deterministic for BARS scoring reliability.
-      // Temperature 0.7 enables strategy variation (5 opening approaches) and
-      // contextual follow-ups without breaking JSON validation.
+      // Temperature 0.8 keeps variation in question style while graders stay deterministic.
       const text = await callChatCompletions({
         baseUrl,
         apiKey: env.LLM_API_KEY,

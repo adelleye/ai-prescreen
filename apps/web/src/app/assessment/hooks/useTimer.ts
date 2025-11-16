@@ -13,30 +13,57 @@ export function useTimer(onTimeExpired: () => void, netCtrlRef: RefObject<AbortC
 
   useEffect(() => {
     netCtrlRef.current = new AbortController();
-    const worker = new Worker(new URL('../../../workers/timer.ts', import.meta.url), {
-      type: 'module',
-    });
-    worker.postMessage({ type: 'start', seconds: MAX_SECONDS });
-    worker.onmessage = (e) => {
-      if (e.data.type === 'tick') {
-        setSeconds(e.data.seconds);
-        setLive(`Time remaining ${e.data.seconds} seconds`);
-      } else if (e.data.type === 'end') {
-        // Abort any in-flight requests when timer ends
-        try {
-          netCtrlRef.current?.abort();
-        } catch (err) {
-          // Log abort errors in development for debugging
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Error aborting network controller:', err);
+    let cleanup: (() => void) | null = null;
+    try {
+      const worker = new Worker(new URL('../../../workers/timer.ts', import.meta.url), {
+        type: 'module',
+      });
+      worker.postMessage({ type: 'start', seconds: MAX_SECONDS });
+      worker.onmessage = (e) => {
+        if (e.data.type === 'tick') {
+          setSeconds(e.data.seconds);
+          setLive(`Time remaining ${e.data.seconds} seconds`);
+        } else if (e.data.type === 'end') {
+          try {
+            netCtrlRef.current?.abort();
+          } catch (err) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error aborting network controller:', err);
+            }
           }
+          setLive('Time ended');
+          onTimeExpired();
         }
-        setLive('Time ended');
-        onTimeExpired();
+      };
+      cleanup = () => worker.terminate();
+    } catch (err) {
+      // Fallback to setInterval if Worker instantiation fails (e.g., invalid URL in dev)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Timer worker failed, falling back to setInterval:', err);
       }
-    };
+      const startedAt = Date.now();
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+        const remaining = Math.max(0, MAX_SECONDS - elapsed);
+        setSeconds(remaining);
+        setLive(`Time remaining ${remaining} seconds`);
+        if (remaining === 0) {
+          clearInterval(interval);
+          try {
+            netCtrlRef.current?.abort();
+          } catch (abortErr) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error aborting network controller:', abortErr);
+            }
+          }
+          setLive('Time ended');
+          onTimeExpired();
+        }
+      }, 1000);
+      cleanup = () => clearInterval(interval);
+    }
     return () => {
-      worker.terminate();
+      if (cleanup) cleanup();
     };
   }, [onTimeExpired, netCtrlRef]);
 
