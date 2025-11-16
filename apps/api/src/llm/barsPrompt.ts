@@ -149,6 +149,8 @@ export function buildQuestionPrompt(params: {
   history: Array<{ question: string; answer: string }>;
   difficulty?: 'easy' | 'medium' | 'hard';
   timeRemaining?: number;
+  itemNumber?: number;
+  maxItems?: number;
   probeLayer?:
     | 'verify'
     | 'apply'
@@ -160,8 +162,19 @@ export function buildQuestionPrompt(params: {
     | 'inconsistency';
   scenario?: string;
 }): string {
-  const { jobContext, applicantContext, history, difficulty, timeRemaining, probeLayer, scenario } =
-    params;
+  const {
+    jobContext,
+    applicantContext,
+    history,
+    difficulty,
+    timeRemaining,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    itemNumber: _itemNumber,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    maxItems: _maxItems,
+    probeLayer,
+    scenario,
+  } = params;
 
   const lines: string[] = [
     `Output ONLY valid JSON: {"question": "...", "difficulty": "easy|medium|hard"}`,
