@@ -54,6 +54,7 @@ export const SubmitAnswerResponse = z.object({
     }),
   }),
   followUp: z.string(),
+  timeRemaining: z.number().optional(), // Time remaining in seconds
 });
 export type SubmitAnswerResponse = z.infer<typeof SubmitAnswerResponse>;
 
@@ -76,6 +77,16 @@ export const NextQuestionRequest = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
 });
 export type NextQuestionRequest = z.infer<typeof NextQuestionRequest>;
+
+export const NextQuestionResponse = z.object({
+  ok: z.literal(true),
+  question: z.string(),
+  itemId: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  timeRemaining: z.number().optional(), // Time remaining in seconds
+  isFirstQuestion: z.boolean().optional(),
+});
+export type NextQuestionResponse = z.infer<typeof NextQuestionResponse>;
 
 /**
  * Validates if a string is a valid UUID v4

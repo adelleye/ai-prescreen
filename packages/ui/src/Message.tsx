@@ -31,14 +31,10 @@ export function MessageAvatar({ role, className = '' }: MessageAvatarProps) {
   return (
     <div
       className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-        isUser
-          ? 'bg-gray-900 text-white'
-          : 'bg-gray-100 text-gray-900'
+        isUser ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
       } ${className}`}
     >
-      <span className="text-xs font-semibold">
-        {isUser ? 'U' : 'AI'}
-      </span>
+      <span className="text-xs font-semibold">{isUser ? 'U' : 'AI'}</span>
     </div>
   );
 }
@@ -55,16 +51,10 @@ export function MessageContent({ role, children, className = '' }: MessageConten
   return (
     <div
       className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-        isUser
-          ? 'bg-gray-900 text-white'
-          : 'border border-gray-200 bg-gray-50 text-gray-900'
+        isUser ? 'bg-gray-900 text-white' : 'border border-gray-200 bg-gray-50 text-gray-900'
       } ${className}`}
     >
-      <div className="whitespace-pre-wrap break-words leading-relaxed">
-        {children}
-      </div>
+      <div className="whitespace-pre-wrap break-words leading-relaxed">{children}</div>
     </div>
   );
 }
-
-

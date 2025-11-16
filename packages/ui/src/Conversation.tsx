@@ -14,7 +14,11 @@ export function Conversation({ className = '', children, ...props }: Conversatio
 
 type ConversationContentProps = React.HTMLAttributes<HTMLDivElement>;
 
-export function ConversationContent({ className = '', children, ...props }: ConversationContentProps) {
+export function ConversationContent({
+  className = '',
+  children,
+  ...props
+}: ConversationContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -48,13 +52,9 @@ export function ConversationContent({ className = '', children, ...props }: Conv
         onScroll={handleScroll}
         {...props}
       >
-        <div className="mx-auto max-w-3xl space-y-4">
-          {children}
-        </div>
+        <div className="mx-auto max-w-3xl space-y-4">{children}</div>
       </div>
-      {showScrollButton && (
-        <ConversationScrollButton onClick={scrollToBottom} />
-      )}
+      {showScrollButton && <ConversationScrollButton onClick={scrollToBottom} />}
     </>
   );
 }
@@ -86,5 +86,3 @@ export function ConversationScrollButton({ onClick }: ConversationScrollButtonPr
     </button>
   );
 }
-
-

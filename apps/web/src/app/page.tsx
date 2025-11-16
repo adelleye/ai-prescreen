@@ -153,8 +153,7 @@ export default function HomePage() {
               animation: 'fade-in 0.6s ease-out 0.3s both',
             }}
           >
-            Adaptive AI pre-screening that identifies top talent in about 15 minutes. Fast, fair,
-            and transparent.
+            Adaptive AI pre-screening that identifies top talent. Fast, fair, and transparent.
           </p>
 
           {/* Feature bullets */}
@@ -217,23 +216,29 @@ export default function HomePage() {
                 if (isCreating) return;
                 setIsCreating(true);
                 try {
-                  // In dev mode, create assessment first, then navigate with UUID
+                  // In dev mode, redirect to Ifnotgod assessment for team testing
                   if (process.env.NODE_ENV === 'development') {
-                    const res = await fetchWithTimeout(apiUrl('/dev/test-assessment'), {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ jobId: 'finance-ap' }),
-                      timeoutMs: 8000,
-                    });
-                    if (res.ok) {
-                      const data = await res.json().catch(() => null);
-                      if (data?.ok && data.assessmentId && isValidUUID(data.assessmentId)) {
-                        // Store in sessionStorage BEFORE navigating so the hook can find it
-                        sessionStorage.setItem('assessmentId', data.assessmentId);
-                        // Navigate with the UUID in the URL
-                        router.push(`/assessment?devAssessmentId=${data.assessmentId}`);
-                        return;
-                      }
+                    // Default assessment ID for testing - replace with your test assessment
+                    const testAssessmentId = 'b81c6ae8-478b-4f7a-98c1-8c16f9c715b3';
+                    sessionStorage.setItem('assessmentId', testAssessmentId);
+                    router.push(`/assessment?devAssessmentId=${testAssessmentId}`);
+                    return;
+                  }
+                  // Production: create assessment first, then navigate with UUID
+                  const res = await fetchWithTimeout(apiUrl('/dev/test-assessment'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jobId: 'finance-ap' }),
+                    timeoutMs: 8000,
+                  });
+                  if (res.ok) {
+                    const data = await res.json().catch(() => null);
+                    if (data?.ok && data.assessmentId && isValidUUID(data.assessmentId)) {
+                      // Store in sessionStorage BEFORE navigating so the hook can find it
+                      sessionStorage.setItem('assessmentId', data.assessmentId);
+                      // Navigate with the UUID in the URL
+                      router.push(`/assessment?devAssessmentId=${data.assessmentId}`);
+                      return;
                     }
                   }
                   // Fallback: navigate without UUID (will be created by hook)
@@ -284,7 +289,7 @@ export default function HomePage() {
               animation: 'fade-in 0.6s ease-out 0.6s both',
             }}
           >
-            No setup required. Assessment takes about 15 minutes. Results are instant.
+            No setup required. Results are instant.
           </p>
         </div>
       </div>

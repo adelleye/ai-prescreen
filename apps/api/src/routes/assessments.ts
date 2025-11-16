@@ -1,4 +1,9 @@
-import { SubmitAnswerRequest, NextQuestionRequest, getQuestionText } from '@shared/core';
+import {
+  SubmitAnswerRequest,
+  NextQuestionRequest,
+  getQuestionText,
+  MAX_ASSESSMENT_ITEMS,
+} from '@shared/core';
 import type { FastifyInstance, FastifyPluginAsync, FastifyRequest } from 'fastify';
 
 import { query, withTransaction } from '../db';
@@ -8,6 +13,8 @@ import {
   fetchAssessmentMetadata,
   validateAssessmentActive,
   buildQuestionHistory,
+  calculateTimeRemaining,
+  secondsToMinutes,
 } from '../services/assessmentHelpers';
 import { requireSession } from '../services/auth';
 import {
@@ -26,52 +33,28 @@ interface RequestWithSession extends FastifyRequest {
   session?: Session;
 }
 
-/**
- * Utility function to map context fields from database schema to function parameters.
- * Handles undefined values gracefully by only including defined fields.
- */
-function mapContextFields<T extends object>(
-  source: AssessmentContext,
-  mapping: Record<string, string>,
-): Partial<T> {
-  return Object.entries(mapping).reduce((acc, [sourceKey, targetKey]) => {
-    const value = (source as Record<string, unknown>)[sourceKey];
-    if (value !== undefined) {
-      (acc as Record<string, unknown>)[targetKey] = value;
-    }
-    return acc;
-  }, {} as Partial<T>);
-}
-
 function buildContexts(context: AssessmentContext, jobId: string) {
-  // Map database fields to function parameters using utility
-  const jobContextFields = mapContextFields<{
-    jobDescription?: string;
-    companyBio?: string;
-    recruiterNotes?: string;
-  }>(context, {
-    job_description: 'jobDescription',
-    company_bio: 'companyBio',
-    recruiter_notes: 'recruiterNotes',
-  });
-
-  const applicantContextFields = mapContextFields<{
-    resumeText?: string | null;
-    applicationAnswers?: Record<string, unknown> | null;
-  }>(context, {
-    resume_text: 'resumeText',
-    application_answers: 'applicationAnswers',
-  });
-
   const jobContext = buildJobContext({
-    ...jobContextFields,
+    jobDescription: context.job_description ?? undefined,
+    companyBio: context.company_bio ?? undefined,
+    recruiterNotes: context.recruiter_notes ?? undefined,
     jobId,
   });
+
   const applicantContext = buildApplicantContext({
-    ...applicantContextFields,
+    candidateName: context.candidate_name ?? undefined,
+    resumeText: context.resume_text ?? undefined,
+    applicationAnswers: context.application_answers ?? undefined,
     jobId,
   });
-  return { jobContext, applicantContext };
+
+  const candidateName = context.candidate_name ?? null;
+
+  return {
+    jobContext,
+    applicantContext,
+    ...(candidateName && { candidateName }),
+  };
 }
 
 const registerAssessments: FastifyPluginAsync<{
@@ -84,6 +67,7 @@ const registerAssessments: FastifyPluginAsync<{
       jobContext?: string;
       applicantContext?: string;
       history?: Array<{ question: string; answer: string }>;
+      timeRemaining?: number;
     }) => Promise<GradeOutcome>;
   };
   llmAdapter: {
@@ -93,6 +77,12 @@ const registerAssessments: FastifyPluginAsync<{
       history: Array<{ question: string; answer: string }>;
       difficulty?: 'easy' | 'medium' | 'hard';
       timeoutMs?: number;
+      timeRemaining?: number;
+      itemNumber?: number;
+      maxItems?: number;
+      isFirstQuestion?: boolean;
+      candidateName?: string | null;
+      resumeText?: string | null;
     }) => Promise<{
       question: string;
       itemId: string;
@@ -100,9 +90,44 @@ const registerAssessments: FastifyPluginAsync<{
     }>;
   };
 }> = async function registerAssessments(app: FastifyInstance, opts) {
-  // Per-assessment rate limiting middleware
+  // Test route to verify plugin registration (before auth middleware)
+  app.get('/test', async (_req, _reply) => {
+    return { ok: true, message: 'Assessment routes are working' };
+  });
+
+  // Fetch assessment details including duration and candidate name (no auth required - needed for UI setup)
+  app.get('/:assessmentId', async (req, reply) => {
+    const { assessmentId } = req.params as { assessmentId: string };
+
+    try {
+      const { rows } = await query<{
+        duration_minutes: number | null;
+        candidate_name: string | null;
+      }>('select duration_minutes, candidate_name from assessments where id = $1', [assessmentId]);
+
+      if (rows.length === 0) {
+        sendError(reply, 404, 'AssessmentNotFound', undefined, req);
+        return;
+      }
+
+      return {
+        ok: true,
+        duration_minutes: rows[0]?.duration_minutes ?? 15,
+        candidate_name: rows[0]?.candidate_name ?? undefined,
+      };
+    } catch (err) {
+      sendError(reply, 500, 'InternalError', undefined, req, err);
+    }
+  });
+
+  // Per-assessment rate limiting middleware (applies to POST/PUT routes below)
   app.addHook('preHandler', async (req, reply) => {
-    // Session validation
+    // Session validation - skip for GET requests
+    if (req.method === 'GET') {
+      return; // GET requests don't require auth
+    }
+
+    // Session validation for POST/PUT
     const isDev = process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1';
     if (!(isDev && req.headers['x-dev-mode'] === 'true')) {
       const session = await requireSession(req, reply);
@@ -112,11 +137,6 @@ const registerAssessments: FastifyPluginAsync<{
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (req as any).session = session;
     }
-  });
-
-  // Test route to verify plugin registration
-  app.get('/test', async (_req, _reply) => {
-    return { ok: true, message: 'Assessment routes are working' };
   });
 
   app.log.info('Registering assessment routes: /submit and /next-question');
@@ -216,7 +236,7 @@ const registerAssessments: FastifyPluginAsync<{
             [assessmentId],
           );
           const numItems = Number(crows[0]?.n ?? 0);
-          if (Number.isFinite(numItems) && numItems >= 18) {
+          if (Number.isFinite(numItems) && numItems >= MAX_ASSESSMENT_ITEMS) {
             await client.query(
               'update assessments set finished_at = now(), stop_reason = $2 where id = $1 and finished_at is null',
               [assessmentId, 'MAX_ITEMS'],
@@ -261,13 +281,13 @@ const registerAssessments: FastifyPluginAsync<{
           answer: string | null;
           question: string | null;
         }>(
-          `select 
-          item_id, 
+          `select
+          item_id,
           response->>'answerText' as answer,
           response->>'questionText' as question
-         from item_events 
-         where assessment_id = $1 
-         order by t_start desc 
+         from item_events
+         where assessment_id = $1
+         order by t_start desc
          limit 2`,
           [assessmentId],
         );
@@ -275,6 +295,13 @@ const registerAssessments: FastifyPluginAsync<{
         // Fetch context
         const context = await fetchAssessmentContext(assessmentId);
         const { jobContext, applicantContext } = buildContexts(context, meta.job_id);
+
+        // Get duration and calculate time remaining for time-aware scoring
+        const durationMinutes = context.duration_minutes ?? 15;
+        const timeRemainingSeconds = calculateTimeRemaining(durationMinutes, meta.started_at);
+        const timeRemainingMinutes =
+          timeRemainingSeconds !== null ? secondsToMinutes(timeRemainingSeconds) : undefined;
+
         const outcome = await scoring.gradeAndScoreAnswer({
           itemId,
           prompt: finalQuestionText ?? `Item ${itemId}`,
@@ -282,6 +309,10 @@ const registerAssessments: FastifyPluginAsync<{
           ...(jobContext && { jobContext }),
           ...(applicantContext && { applicantContext }),
           ...(history && history.length > 0 && { history }),
+          ...(timeRemainingMinutes !== undefined &&
+            timeRemainingMinutes !== null && {
+              timeRemaining: timeRemainingMinutes,
+            }),
         });
         // Update item_event with score and t_end
         await withTransaction(async (client) => {
@@ -307,6 +338,7 @@ const registerAssessments: FastifyPluginAsync<{
           ok: true,
           score: { total: outcome.total, criteria: outcome.criteria },
           followUp: outcome.followUp,
+          ...(timeRemainingSeconds !== null && { timeRemaining: Math.ceil(timeRemainingSeconds) }),
         };
       } catch (err: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -392,9 +424,15 @@ const registerAssessments: FastifyPluginAsync<{
         return;
       }
 
-      // Stop rules: max 18 items or 15 minutes elapsed
+      // Stop rules: max MAX_ASSESSMENT_ITEMS items or time elapsed
       const numItems = Number(meta.n ?? 0);
-      const stopResult = await checkStopRules(assessmentId, numItems, meta.started_at);
+      const durationMinutes = meta.duration_minutes;
+      const stopResult = await checkStopRules(
+        assessmentId,
+        numItems,
+        meta.started_at,
+        durationMinutes,
+      );
       if (stopResult.shouldStop) {
         sendError(reply, 410, stopResult.error, undefined, req);
         return;
@@ -409,13 +447,13 @@ const registerAssessments: FastifyPluginAsync<{
         answer: string | null;
         question: string | null;
       }>(
-        `select 
-        item_id, 
+        `select
+        item_id,
         response->>'answerText' as answer,
         response->>'questionText' as question
-       from item_events 
-       where assessment_id = $1 
-       order by t_start desc 
+       from item_events
+       where assessment_id = $1
+       order by t_start desc
        limit 5`,
         [assessmentId],
       );
@@ -424,7 +462,13 @@ const registerAssessments: FastifyPluginAsync<{
       const history = buildQuestionHistory(prevRows, jobId, getQuestionText, 5);
 
       // Build contexts from database fields
-      const { jobContext, applicantContext } = buildContexts(context, jobId);
+      const { jobContext, applicantContext, candidateName } = buildContexts(context, jobId);
+
+      // Calculate time remaining for time-aware questions
+      const timeRemainingSeconds = calculateTimeRemaining(durationMinutes, meta.started_at);
+      const timeRemainingMinutes =
+        timeRemainingSeconds !== null ? secondsToMinutes(timeRemainingSeconds) : undefined;
+      const isFirstQuestion = numItems === 0;
 
       // Generate question using LLM
       const llmAdapter = opts.llmAdapter;
@@ -439,6 +483,15 @@ const registerAssessments: FastifyPluginAsync<{
           applicantContext,
           history,
           ...(difficulty && { difficulty }),
+          ...(timeRemainingMinutes !== undefined &&
+            timeRemainingMinutes !== null && {
+              timeRemaining: timeRemainingMinutes,
+            }),
+          ...(numItems !== undefined && { itemNumber: numItems + 1 }),
+          maxItems: MAX_ASSESSMENT_ITEMS,
+          isFirstQuestion,
+          ...(candidateName && { candidateName }),
+          ...(context.resume_text && { resumeText: context.resume_text }),
         });
 
         // Log question generated event
@@ -448,6 +501,7 @@ const registerAssessments: FastifyPluginAsync<{
             assessmentId,
             itemId: result.itemId,
             difficulty: result.difficulty,
+            isFirstQuestion,
             requestId: req.id,
           },
           'Question generated',
@@ -458,6 +512,8 @@ const registerAssessments: FastifyPluginAsync<{
           question: result.question,
           itemId: result.itemId,
           difficulty: result.difficulty,
+          ...(timeRemainingSeconds !== null && { timeRemaining: Math.ceil(timeRemainingSeconds) }),
+          isFirstQuestion,
         };
       } catch (err) {
         // Log detailed error server-side with context

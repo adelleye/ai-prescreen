@@ -23,8 +23,12 @@ export function Loader({ className = '', size = 'md' }: LoaderProps) {
     >
       <div className="flex items-center gap-1">
         <div className={`${sizeClasses[size]} animate-pulse rounded-full bg-gray-300`} />
-        <div className={`${sizeClasses[size]} animate-pulse rounded-full bg-gray-300 animation-delay-200`} />
-        <div className={`${sizeClasses[size]} animate-pulse rounded-full bg-gray-300 animation-delay-400`} />
+        <div
+          className={`${sizeClasses[size]} animate-pulse rounded-full bg-gray-300 animation-delay-200`}
+        />
+        <div
+          className={`${sizeClasses[size]} animate-pulse rounded-full bg-gray-300 animation-delay-400`}
+        />
       </div>
     </div>
   );
@@ -46,12 +50,19 @@ export function TypingIndicator({ className = '' }: TypingIndicatorProps) {
         <span className="text-xs font-semibold">AI</span>
       </div>
       <div className="mt-2 flex items-center gap-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-        <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+        <span
+          className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+          style={{ animationDelay: '0ms' }}
+        />
+        <span
+          className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+          style={{ animationDelay: '150ms' }}
+        />
+        <span
+          className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+          style={{ animationDelay: '300ms' }}
+        />
       </div>
     </div>
   );
 }
-
-

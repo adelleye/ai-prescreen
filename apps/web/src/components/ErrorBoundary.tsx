@@ -60,7 +60,9 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           {process.env.NODE_ENV === 'development' && this.state.error && (
             <details className="mt-2">
-              <summary className="text-xs text-red-600 cursor-pointer">Error details (dev only)</summary>
+              <summary className="text-xs text-red-600 cursor-pointer">
+                Error details (dev only)
+              </summary>
               <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto">
                 {this.state.error.toString()}
                 {this.state.error.stack && `\n\n${this.state.error.stack}`}
@@ -83,5 +85,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-

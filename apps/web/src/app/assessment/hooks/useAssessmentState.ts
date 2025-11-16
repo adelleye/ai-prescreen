@@ -30,9 +30,43 @@ export function useAssessmentState() {
     if (devAssessmentId) {
       // Validate devAssessmentId is a valid UUID
       if (isValidUUID(devAssessmentId)) {
-        // Always use the UUID from URL, even if different from cached
-        sessionStorage.setItem('assessmentId', devAssessmentId);
-        setAssessmentId(devAssessmentId);
+        // Check if assessment needs reset (finished state from previous run)
+        // MUST complete before setting assessmentId to prevent race condition
+        const resetIfNeeded = async () => {
+          try {
+            if (!netCtrlRef.current) netCtrlRef.current = new AbortController();
+            const res = await fetchWithTimeout(apiUrl(`/dev/test-assessment/${devAssessmentId}`), {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' },
+              timeoutMs: 5000,
+              signal: netCtrlRef.current.signal,
+            });
+            if (res.ok) {
+              const data = await res.json().catch(() => null);
+              // If assessment is finished, reset it for a fresh run
+              if (data?.assessment?.finishedAt) {
+                await fetchWithTimeout(apiUrl(`/dev/test-assessment/${devAssessmentId}/reset`), {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({}),
+                  timeoutMs: 5000,
+                  signal: netCtrlRef.current.signal,
+                });
+              }
+            }
+          } catch (err) {
+            // Silently ignore reset errors — assessment will still work
+            if (process.env.NODE_ENV === 'development') {
+              // eslint-disable-next-line no-console
+              console.log('Could not reset assessment, proceeding with current state');
+            }
+          }
+          // Only set assessmentId AFTER reset completes to prevent race condition
+          // where first question fetch happens before reset finishes
+          sessionStorage.setItem('assessmentId', devAssessmentId);
+          setAssessmentId(devAssessmentId);
+        };
+        void resetIfNeeded();
         // Dev mode doesn't use sessions, so we don't set sessionToken
         return;
       } else {

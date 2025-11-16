@@ -127,7 +127,10 @@ export class OpenAIAdapter implements LlmAdapter {
           ...(input.jobContext && { jobContext: input.jobContext }),
           ...(input.applicantContext && { applicantContext: input.applicantContext }),
           ...(input.history && { history: input.history }),
-          ...(input.timeRemaining && { timeRemaining: input.timeRemaining }),
+          ...(input.timeRemaining !== undefined &&
+            input.timeRemaining !== null && {
+              timeRemaining: input.timeRemaining,
+            }),
         }),
       },
     ];
@@ -137,7 +140,9 @@ export class OpenAIAdapter implements LlmAdapter {
     const cacheEnabled = (env.LLM_CACHE_ENABLED ?? '0') === '1';
     const ttlMs = Number(env.LLM_CACHE_TTL_MS ?? 86_400_000);
     const answerHash = createHash('sha1').update(input.answer).digest('hex');
-    const contextKey = `${input.prompt}|${input.jobContext ?? ''}|${input.applicantContext ?? ''}`;
+    const historyKey = input.history ? JSON.stringify(input.history) : '';
+    const timeKey = input.timeRemaining ?? '';
+    const contextKey = `${input.prompt}|${input.jobContext ?? ''}|${input.applicantContext ?? ''}|${historyKey}|${timeKey}`;
     const contextHash = createHash('sha1').update(contextKey).digest('hex');
     const cacheKeyBase = `${input.itemId}|${primaryModel}|${input.seed}|${answerHash}|${contextHash}`;
     const cached = cacheEnabled ? getFromCache(cacheKeyBase) : undefined;
@@ -232,7 +237,10 @@ export class OpenAIAdapter implements LlmAdapter {
           applicantContext: input.applicantContext,
           history: input.history,
           ...(input.difficulty && { difficulty: input.difficulty }),
-          ...(input.timeRemaining && { timeRemaining: input.timeRemaining }),
+          ...(input.timeRemaining !== undefined &&
+            input.timeRemaining !== null && {
+              timeRemaining: input.timeRemaining,
+            }),
           ...(input.itemNumber && { itemNumber: input.itemNumber }),
           ...(input.maxItems && { maxItems: input.maxItems }),
         });
@@ -240,7 +248,7 @@ export class OpenAIAdapter implements LlmAdapter {
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: `You are a senior engineer conducting a tough, technical pre-screen interview.
+        content: `You are a senior recruiter conducting a tough, technical pre-screen interview like a human would.
 Your job: Generate ONE interview question that is:
 - Direct and unforgiving. No softening language ("It seems like", "Can you elaborate?").
 - Grounded in the candidate's actual background and the job requirements.
@@ -273,7 +281,7 @@ Output ONLY valid JSON (no preamble, no explanation, no markdown).`,
         messages,
         timeoutMs,
         seed,
-        temperature: 0.7, // Non-deterministic sampling for question variation
+        temperature: 0.8, // Non-deterministic sampling for question variation
       });
       const parsed = parseQuestionFromModelText(text);
       const itemId = `q_${createHash('sha1')

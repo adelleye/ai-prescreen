@@ -30,6 +30,3 @@ describe('getAssessmentSummary', () => {
     expect(Array.isArray(res.integrity.reasons)).toBe(true);
   });
 });
-
-
-

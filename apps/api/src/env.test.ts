@@ -34,6 +34,3 @@ describe('env.validateEnv', () => {
     expect(() => validateEnv()).toThrow(/DATABASE_URL/);
   });
 });
-
-
-

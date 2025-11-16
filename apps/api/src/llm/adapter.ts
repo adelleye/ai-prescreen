@@ -8,6 +8,7 @@ export interface LlmAdapter {
     jobContext?: string;
     applicantContext?: string;
     history?: Array<{ question: string; answer: string }>;
+    timeRemaining?: number;
   }): Promise<{
     criteria: {
       policyProcedure: 0 | 1 | 2 | 3;
@@ -23,6 +24,11 @@ export interface LlmAdapter {
     history: Array<{ question: string; answer: string }>;
     difficulty?: 'easy' | 'medium' | 'hard';
     timeoutMs?: number;
+    timeRemaining?: number;
+    itemNumber?: number;
+    maxItems?: number;
+    isFirstQuestion?: boolean;
+    candidateName?: string | null;
   }): Promise<{
     question: string;
     itemId: string;

@@ -22,3 +22,4 @@ alter table assessments
   drop column if exists resume_text;
 
 
+
